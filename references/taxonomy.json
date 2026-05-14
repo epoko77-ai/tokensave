@@ -1,0 +1,597 @@
+{
+  "version": "v1",
+  "created": "2026-05-14",
+  "scope": "Claude Code · 하네스 운영 토큰 절감 패턴",
+  "sources_summary": {
+    "anthropic_official": 40,
+    "community_global_and_korean": 32,
+    "empirical_and_academic": 9,
+    "user_baseline_metrics": "baseline.md (~/.claude/agents N=104, skills N=32, harnesses N=27)"
+  },
+  "adoption_rule": "외부 출처 독립 N >= 2 confirmed. 사용자 baseline hotspot은 예외 등록(외부 N=1 + user 실측).",
+  "headline_facts": [
+    {
+      "id": "H1",
+      "fact": "user baseline opus 비율 103/104 = 99.0%",
+      "source": "baseline.md §1",
+      "external_corroboration": ["A001", "A013", "S-B017", "S-C02", "S-C05"]
+    },
+    {
+      "id": "H2",
+      "fact": "Multi-agent 7× ~ 15× cost multiplier is real (A003, S-B003) — and justifiable when 5 cost-optimization patterns are applied: role-tier model mix, common-context cache_control, parallel/sequential declaration, per-agent wall-clock + per-call cap, and file-based handoff. C3 detects missing patterns, not the team itself.",
+      "source": "A003 + audit.py R3 sub-rules R3a~R3e",
+      "external_corroboration": ["S-B003", "S-B004", "A002", "A004", "S-C04"]
+    },
+    {
+      "id": "H3",
+      "fact": "HD-003 결정적 LLM 라우팅 RISKY agent 20개",
+      "source": "baseline.md §3",
+      "external_corroboration": ["S-C07", "S-C08", "S-C01", "S-C09"]
+    },
+    {
+      "id": "H4",
+      "fact": "prompt caching 언급 0회 / 27 하네스",
+      "source": "baseline.md §4",
+      "external_corroboration": ["A004", "A005", "S-B006", "S-B028"]
+    },
+    {
+      "id": "H5",
+      "fact": "model pricing per MTok input: Opus $5 / Sonnet $3 / Haiku $1; output 5×",
+      "source": "A005"
+    }
+  ],
+  "categories": [
+    {
+      "id": "C1",
+      "title": "Model Tier Misallocation",
+      "headline": true,
+      "patterns": [
+        {
+          "id": "C1.1",
+          "title": "All-Opus Anti-pattern",
+          "severity": "S1",
+          "trigger_keywords": ["model: opus 비율 >= 80%", "단일 모델 고정", "uniform model assignment"],
+          "detection": "grep -l '^model: opus$' ~/.claude/agents/*.md 비율 계산",
+          "sources_external": ["A001", "A013", "S-B017", "S-B005", "S-B018", "S-B019", "S-C02", "S-C05"],
+          "user_baseline_hit": "103/104 = 99.0%",
+          "mitigation": "Haiku=read-only 탐색·간단 요약·boilerplate; Sonnet=표준 집필·코드·번역·정형 출력; Opus=아키텍처·high-stake reasoning. task_to_model_matrix 참조",
+          "expected_savings": "-40% (Sonnet) ~ -80% (Haiku) per agent input cost",
+          "meta_principle_violation": 3
+        },
+        {
+          "id": "C1.2",
+          "title": "Opus 4.7 Drop-in Upgrade Without Measurement",
+          "severity": "S2",
+          "trigger_keywords": ["Opus 4.7 업그레이드", "토크나이저 변경 무시"],
+          "detection": "업그레이드 전후 동일 prompt 토큰 카운트 비교",
+          "sources_external": ["S-B008", "S-B009"],
+          "user_baseline_hit": "미측정",
+          "mitigation": "업그레이드 전후 토큰 측정. 1.46× 인플레이션 보정 안 하면 체감 40% 가격 인상",
+          "expected_savings": "-40% (인플레이션 보정 시)",
+          "meta_principle_violation": 1
+        },
+        {
+          "id": "C1.3",
+          "title": "Session Mid-stream Model Switch (Cache Bust)",
+          "severity": "S2",
+          "trigger_keywords": ["/model 세션 중 사용", "모델 교체"],
+          "detection": "session log /model 카운트",
+          "sources_external": ["S-B007", "A004", "A007"],
+          "user_baseline_hit": "미측정",
+          "mitigation": "세션 시작 시 모델 고정. 다른 모델 필요 시 새 세션 또는 서브에이전트",
+          "expected_savings": "-80% (해당 턴 캐시 회복)",
+          "meta_principle_violation": 2
+        }
+      ]
+    },
+    {
+      "id": "C2",
+      "title": "Deterministic Work Routed Through LLM",
+      "headline": true,
+      "hd_reference": "HD-003",
+      "patterns": [
+        {
+          "id": "C2.1",
+          "title": "Verbatim 1:1 Mapping in LLM",
+          "severity": "S1",
+          "trigger_keywords": ["verbatim", "1:1 매핑", "BibTeX", "cross-reference 해결", "dead link 검사", "format 정규화", "code_split=0"],
+          "detection": "Python 정적: agent.md 본문 결정적 키워드 grep + python/script 펜스 부재",
+          "sources_external": ["S-C07", "S-C08", "S-C01", "S-C09"],
+          "user_baseline_hit": "20 RISKY agents; Top3: uap-case-parser(10840), pm-evidence-curator(3297, det_kw=3), uap-source-fetcher(3959, det_kw=3)",
+          "mitigation": "Python phase 추가, LLM은 분리·우선순위 판단만",
+          "expected_savings": "-99% (단일 에이전트 비용; paper-maker pm-citation-formatter 91분→30초)",
+          "meta_principle_violation": 3
+        },
+        {
+          "id": "C2.2",
+          "title": "Format/Citation Normalization in LLM",
+          "severity": "S1",
+          "trigger_keywords": ["BibTeX 생성", "인용 스타일 변환", "날짜 포맷 정규화", "표 구조 변환"],
+          "detection": "agent.md 본문 키워드 grep",
+          "sources_external": ["S-C07", "S-C09"],
+          "user_baseline_hit": "pm-citation-formatter v1.2 수정 완료(채택 reference)",
+          "mitigation": "csl-json, pybtex, dateutil 라이브러리",
+          "expected_savings": "-99%",
+          "meta_principle_violation": 3
+        },
+        {
+          "id": "C2.3",
+          "title": "Data Parsing/Extraction in LLM (CSV·JSON·HTML·PDF)",
+          "severity": "S1",
+          "trigger_keywords": ["CSV→JSON LLM 변환", "HTML 스크래핑 LLM", "PDF 표 추출 LLM"],
+          "detection": "agent.md 키워드 + tool list에 Bash/Python 부재",
+          "sources_external": ["S-B024", "S-C09"],
+          "user_baseline_hit": "uap-source-fetcher 등 source-collector 류",
+          "mitigation": "pandas, pypdf, readability-lxml, BeautifulSoup 선처리",
+          "expected_savings": "-90% ~ -99% (PDF 15p 45K→2K tokens)",
+          "meta_principle_violation": 3
+        },
+        {
+          "id": "C2.4",
+          "title": "Cross-reference / Dead Link Check in LLM",
+          "severity": "S2",
+          "trigger_keywords": ["링크 유효성 확인", "참조 번호 매칭"],
+          "detection": "agent.md 키워드",
+          "sources_external": ["S-C09", "S-C07"],
+          "user_baseline_hit": "다수 fact-checker류",
+          "mitigation": "requests + concurrent.futures, linkchecker CLI",
+          "expected_savings": "-95%",
+          "meta_principle_violation": 2
+        }
+      ]
+    },
+    {
+      "id": "C3",
+      "title": "Multi-Agent Team Composition (cost-optimized harness design)",
+      "framing": "Multi-agent is justified — when 5 cost-optimization patterns are applied. C3 sub-patterns detect missing patterns, not the team itself. 3-tier decision: 5/5 met = PASS (well-formed); 3-4/5 = WARN; 0-2/5 = FAIL (unjustified multiplier). audit.py rule R3 sub-rules R3a~R3e map 1:1 to C3.1~C3.5.",
+      "patterns": [
+        {
+          "id": "C3.1",
+          "title": "5+ Team without Role-Tier Model Mix",
+          "severity": "S1",
+          "audit_rule": "R3a",
+          "trigger_keywords": ["all agents model: opus", "uniform model assignment", "no orchestrator/worker/reviewer tier"],
+          "detection": "5+ team 의 agent 정의 model 필드 분포 — distinct models >= 2 충족 / 1 = FAIL",
+          "sources_external": ["A001", "A002", "A013", "S-B017", "S-C02", "S-C05"],
+          "user_baseline_hit": "103/104 = 99% opus; 5+ team 26/28 (93%) 중 role-tier 분기 보유 1건",
+          "mitigation": "orchestrator: Opus (메타 판정·patch 통합) / worker: Sonnet (정형 출력) 또는 Python (결정적) / reviewer: Opus (high-stake) 또는 Sonnet (standard)",
+          "expected_savings": "-40% per Sonnet teammate, -80% per Haiku scout",
+          "meta_principle_violation": 3
+        },
+        {
+          "id": "C3.2",
+          "title": "5+ Team without Common-Context Caching",
+          "severity": "S1",
+          "audit_rule": "R3b",
+          "trigger_keywords": ["cache_control 0회 in 5+ team", "no prompt caching breakpoint"],
+          "detection": "5+ team 하네스 섹션 / 메인 SKILL.md에 cache_control / prompt cach* / 캐싱 키워드 grep — 0회 = FAIL",
+          "sources_external": ["A004", "A005", "S-B006", "S-B028"],
+          "user_baseline_hit": "27/27 (100%) 0회; 5+ team 한정 R3b가 적용 — R5와 부분 중첩",
+          "mitigation": "공통 system prompt / SKILL.md / 자주 호출 reference에 4 breakpoint. Sonnet 1024 / Opus 4096 최소 토큰",
+          "expected_savings": "-90% input tokens (hit rate 90%)",
+          "meta_principle_violation": 3,
+          "overlaps_with": ["C5.1"]
+        },
+        {
+          "id": "C3.3",
+          "title": "5+ Team without Parallel/Sequential Declaration",
+          "severity": "S2",
+          "audit_rule": "R3c",
+          "trigger_keywords": ["병렬", "직렬", "background", "parallel", "sequential", "cascade", "pipeline", "하이브리드"],
+          "detection": "5+ team 하네스 섹션에 위 키워드 0회 = 의도적 선택 부재 → WARN",
+          "sources_external": ["A003", "S-B003", "S-B004", "S-C04"],
+          "user_baseline_hit": "28 하네스 중 약 12개 의도 선언 명시(paper-maker 'Phase 3 백그라운드 병렬' 등 좋은 예); 나머지 미명시",
+          "mitigation": "각 Phase에 '병렬 N / sequential cascade / 하이브리드' 명시. background_tasks: N, wave 실행, fan-out/fan-in 정의",
+          "expected_savings": "wall-clock + retry 곱연산 회피 -40% ~ -60%",
+          "meta_principle_violation": 2
+        },
+        {
+          "id": "C3.4",
+          "title": "5+ Team without Wall-clock + Per-call Cap",
+          "severity": "S2",
+          "audit_rule": "R3d",
+          "trigger_keywords": ["wall-clock", "timeout", "budget", "per-call cap", "분량 한도", "재시도 max", "iter cap", "≤ N회"],
+          "detection": "5+ team 섹션에 위 키워드 0회 = FAIL signal",
+          "sources_external": ["S-C05", "S-C09", "S-C02"],
+          "user_baseline_hit": "paper-maker v1.3.1·v1.4가 wall-clock 분기 명시(좋은 예); 다른 5+ team 대체로 미명시",
+          "mitigation": "agent 정의 또는 SKILL.md에 wall_clock: 30min/50min, per_call_cap: 4000자, retry_count: ≤ 3",
+          "expected_savings": "-28.4% cost-of-pass + runaway 차단",
+          "meta_principle_violation": 2,
+          "overlaps_with": ["C9.1"]
+        },
+        {
+          "id": "C3.5",
+          "title": "5+ Team without File-based Handoff (SendMessage overuse)",
+          "severity": "S2",
+          "audit_rule": "R3e",
+          "trigger_keywords": ["_workspace/", "file-based", "파일 기반", "산출물 트리", "산출물 경로", "중간 산출물", ".checkpoints/"],
+          "detection": "5+ team 섹션에 위 키워드 0회 = SendMessage 남용 위험 → WARN",
+          "sources_external": ["A023", "S-C03"],
+          "user_baseline_hit": "paper-maker `_workspace/01_scope ~ 15_build/`, busan-bukgu-research `_workspace/01_plan ~ 05_report/`, policyblind `_workspace/01_architecture ~ 08_qa/` 다수 정상 패턴",
+          "mitigation": "모든 5+ team SKILL.md에 산출물 트리 명문화, agent 간 통신은 file read/write로",
+          "expected_savings": "cross-agent 토큰 누설 방지, 컨텍스트 격리 보존",
+          "meta_principle_violation": 2
+        },
+        {
+          "id": "C3.6",
+          "title": "Unjustified Hierarchy (Same-domain Reasoning Split)",
+          "severity": "S2",
+          "trigger_keywords": ["same-domain split for 'more thorough' feel", "mergeable agents", "no isolation justification"],
+          "detection": "manual review — 분할 정당화 부재",
+          "sources_external": ["S-C04"],
+          "external_n": 1,
+          "user_baseline_hit": "paper-maker strict + adversarial reviewer 독립 (좋은 예) vs 임의 분할 (anti-pattern)",
+          "mitigation": "분할 전 정당 조건 1+ 만족 자문: (a) 독립 reasoning domain, (b) 컨텍스트 격리, (c) 진정한 병렬, (d) tool/permission 경계, (e) persona specialization",
+          "expected_savings": "merge 가능한 agent 결합 시 spawn 비용 회수",
+          "meta_principle_violation": 2,
+          "notes": "외부 N=1 + 사용자 hotspot. references/optimal_team_composition.md 참조"
+        }
+      ]
+    },
+    {
+      "id": "C4",
+      "title": "Context Bloat",
+      "patterns": [
+        {
+          "id": "C4.1",
+          "title": "Bloated CLAUDE.md (>200 lines)",
+          "severity": "S1",
+          "trigger_keywords": ["CLAUDE.md > 200 lines", "wc -l > 500"],
+          "detection": "wc -l ~/CLAUDE.md",
+          "sources_external": ["A017", "A024", "A036", "S-B004", "S-B005", "S-B006"],
+          "user_baseline_hit": "27 하네스 섹션 + 14.3 트리거/하네스 - 매우 큰 추정",
+          "mitigation": "운영만 본문, 이력 changelog 분리, 워크플로 Skills 이전, HTML 주석 활용(A025)",
+          "expected_savings": "-50% 세션 고정 비용 (실측 N=2)",
+          "meta_principle_violation": 3
+        },
+        {
+          "id": "C4.2",
+          "title": "Raw Log/Output in Main Context",
+          "severity": "S1",
+          "trigger_keywords": ["10000줄 로그", "전체 출력 붙여넣기", "BASH_MAX_OUTPUT_LENGTH 미설정"],
+          "detection": "도구 호출 출력 크기",
+          "sources_external": ["A016", "S-B002", "S-B010"],
+          "user_baseline_hit": "미측정 (runtime)",
+          "mitigation": "PreToolUse hook grep, 2>&1 | grep -A5 ERROR | head -120",
+          "expected_savings": "-90% ~ -99% (해당 출력)",
+          "meta_principle_violation": 3
+        },
+        {
+          "id": "C4.3",
+          "title": "Dynamic Data Inside System Prompt (Cache Bust)",
+          "severity": "S2",
+          "trigger_keywords": ["timestamp at top", "날짜 변동 데이터 system prompt"],
+          "detection": "system prompt 상단 변동 키워드",
+          "sources_external": ["S-B007", "A007"],
+          "user_baseline_hit": "측정 안 됨",
+          "mitigation": "동적 데이터 user message로, system prompt 정적 유지, <system-reminder> 분리",
+          "expected_savings": "-80% (캐시 히트 회복)",
+          "meta_principle_violation": 2
+        },
+        {
+          "id": "C4.4",
+          "title": "Kitchen-sink Session",
+          "severity": "S2",
+          "trigger_keywords": ["1시간+ 연속", "주제 전환 누적"],
+          "detection": "session length + 주제 변경 카운트",
+          "sources_external": ["A040", "S-B006", "S-B016"],
+          "user_baseline_hit": "runtime 측정 필요",
+          "mitigation": "/clear 무관 작업 사이, 60% 도달 전 /compact, CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70",
+          "expected_savings": "-67% (실측 N=2)",
+          "meta_principle_violation": 2
+        },
+        {
+          "id": "C4.5",
+          "title": "Non-actionable Body Content Bloat",
+          "severity": "S2",
+          "trigger_keywords": ["SKILL.md > 5000자", "Phase 비율 낮음"],
+          "detection": "SKILL.md 크기 + Phase/결정 트리 비율",
+          "sources_external": ["S-C02"],
+          "external_n": 1,
+          "user_baseline_hit": "평균 SKILL.md 8693자, 최대 32987자 (skill-creator), paper-maker 23138자",
+          "mitigation": "Phase·결정 트리·예시는 본문, 장식·역사·메타는 references/로",
+          "expected_savings": "-60% (SkillReducer 추정 적용)",
+          "meta_principle_violation": 2,
+          "notes": "외부 N=1이나 사용자 hotspot 등록"
+        }
+      ]
+    },
+    {
+      "id": "C5",
+      "title": "Prompt Caching Underuse",
+      "patterns": [
+        {
+          "id": "C5.1",
+          "title": "cache_control Breakpoint Absence",
+          "severity": "S1",
+          "trigger_keywords": ["cache_control 0회", "prompt caching 미언급"],
+          "detection": "grep -r cache_control ~/.claude/",
+          "sources_external": ["A004", "A005", "S-B006", "S-B028"],
+          "user_baseline_hit": "27/27 하네스 (100%) 캐싱 언급 0회",
+          "mitigation": "system prompt + SKILL.md + reference 파일에 breakpoint 4개까지. Sonnet 1024 / Opus 4096 최소 길이",
+          "expected_savings": "-80% 입력 토큰 (hit rate 90%)",
+          "meta_principle_violation": 3
+        },
+        {
+          "id": "C5.2",
+          "title": "Tool/MCP Set Change Mid-session",
+          "severity": "S2",
+          "trigger_keywords": ["MCP 추가 세션 중", "tool list 변경"],
+          "detection": "session config 변경 이력",
+          "sources_external": ["S-B007", "A014"],
+          "user_baseline_hit": "미측정",
+          "mitigation": "세션 시작 시 tool set 고정. 추가 필요 시 새 세션",
+          "expected_savings": "캐시 효율 보존",
+          "meta_principle_violation": 2
+        },
+        {
+          "id": "C5.3",
+          "title": "Cache TTL Mismatch (5min vs 1hr)",
+          "severity": "S3",
+          "trigger_keywords": ["배치·1hr 파이프라인에 5min 캐시"],
+          "detection": "batch API + cache duration 검사",
+          "sources_external": ["A010", "S-B028"],
+          "user_baseline_hit": "미측정",
+          "mitigation": "배치/장시간은 1시간 캐시",
+          "expected_savings": "-50% ~ -80% (배치 환경)",
+          "meta_principle_violation": 1
+        }
+      ]
+    },
+    {
+      "id": "C6",
+      "title": "Subagent Spawn Overhead",
+      "patterns": [
+        {
+          "id": "C6.1",
+          "title": "Small Task in Subagent (Cannot Recoup)",
+          "severity": "S2",
+          "trigger_keywords": ["짧은 grep/카운트에 Task", "1~2분 작업 분기"],
+          "detection": "Task 호출 분량 estimate",
+          "sources_external": ["S-B003", "A019"],
+          "user_baseline_hit": "측정 필요",
+          "mitigation": "절감치 > 30K tokens일 때만",
+          "expected_savings": "spawn 20K~85K 회수",
+          "meta_principle_violation": 2
+        },
+        {
+          "id": "C6.2",
+          "title": "Idle Team Not Disbanded",
+          "severity": "S2",
+          "trigger_keywords": ["작업 완료 후 팀 활성"],
+          "detection": "agent team termination 로그",
+          "sources_external": ["A023"],
+          "external_n": 1,
+          "user_baseline_hit": "미측정",
+          "mitigation": "orchestrator 명시적 종료",
+          "expected_savings": "background token($0.04/session) 누적 방지",
+          "meta_principle_violation": 2,
+          "notes": "Anthropic 1차 출처만, 외부 커뮤니티 N=0이나 공식 강력 권고"
+        },
+        {
+          "id": "C6.3",
+          "title": "Skills Preload Without Need",
+          "severity": "S3",
+          "trigger_keywords": ["subagent skills: 다수 나열"],
+          "detection": "agent frontmatter skills 필드 카운트",
+          "sources_external": ["A015", "A029"],
+          "user_baseline_hit": "측정 필요",
+          "mitigation": "100% 사용 스킬만 preload, 나머지 Skill tool on-demand",
+          "expected_savings": "subagent startup -50%+ (스킬 수에 따라)",
+          "meta_principle_violation": 1
+        }
+      ]
+    },
+    {
+      "id": "C7",
+      "title": "Tool Call Inefficiency",
+      "patterns": [
+        {
+          "id": "C7.1",
+          "title": "Full File Read When Offset/Limit Possible",
+          "severity": "S2",
+          "trigger_keywords": ["Read(file_path) offset 없음", "대형 파일 전체"],
+          "detection": "Read 호출 패턴",
+          "sources_external": ["A005", "A039", "S-B005"],
+          "user_baseline_hit": "runtime",
+          "mitigation": "grep으로 라인 찾고 주변 read",
+          "expected_savings": "-수천 토큰/호출",
+          "meta_principle_violation": 2
+        },
+        {
+          "id": "C7.2",
+          "title": "Write Instead of Edit",
+          "severity": "S2",
+          "trigger_keywords": ["기존 파일 Write 도구"],
+          "detection": "Write 호출 + 파일 존재",
+          "sources_external": ["A005"],
+          "external_n": 1,
+          "user_baseline_hit": "runtime",
+          "mitigation": "기존 파일은 Edit 강제",
+          "expected_savings": "Edit = diff만, -90%+ 전송량",
+          "meta_principle_violation": 2,
+          "notes": "공식 + 커뮤니티 합의 (개별 인용 N=1)"
+        },
+        {
+          "id": "C7.3",
+          "title": "MCP When CLI Available",
+          "severity": "S2",
+          "trigger_keywords": ["gh 대신 GitHub MCP", "사용 안 하는 MCP 연결"],
+          "detection": ".mcp.json 활성 서버 vs 실사용",
+          "sources_external": ["A020", "A039", "S-B002"],
+          "user_baseline_hit": "측정 필요",
+          "mitigation": "gh, aws, gcloud, sentry-cli 우선. 미사용 MCP 끊기",
+          "expected_savings": "tool 정의 오버헤드 제거",
+          "meta_principle_violation": 2
+        },
+        {
+          "id": "C7.4",
+          "title": "Sequential When Parallel Possible",
+          "severity": "S3",
+          "trigger_keywords": ["독립 도구 순차 호출"],
+          "detection": "tool call sequence 패턴",
+          "sources_external": ["A035"],
+          "external_n": 1,
+          "user_baseline_hit": "runtime",
+          "mitigation": "독립 호출 한 메시지에 묶어 병렬화",
+          "expected_savings": "메시지 수 감소 = 컨텍스트 누적 감소",
+          "meta_principle_violation": 1,
+          "notes": "Anthropic 공식 + 커뮤니티 합의, 개별 인용 N=1"
+        }
+      ]
+    },
+    {
+      "id": "C8",
+      "title": "Report/Artifact Loss",
+      "hd_reference": "HD-010",
+      "patterns": [
+        {
+          "id": "C8.1",
+          "title": "Drafter Saves Artifact But Cuts Off in Report",
+          "severity": "S1",
+          "trigger_keywords": ["report-first 컨벤션 없음", "보고 텍스트 길이 cap 없음"],
+          "detection": "agent 정의 출력 단계 분석",
+          "sources_external": ["S-C09", "S-C03"],
+          "external_n": 1,
+          "user_baseline_hit": "paper-maker 실측 1건, 다른 drafter 잠재",
+          "mitigation": "산출물 경로 먼저, 보고는 짧게 (≤200자)",
+          "expected_savings": "재실행 비용 방지 (Tokenomics 59.4% 반복 통과)",
+          "meta_principle_violation": 3,
+          "notes": "외부 동일 용어 N=0, 구조적 일치 1 (Tokenomics) + 사용자 실측 1 - hotspot 등록"
+        }
+      ]
+    },
+    {
+      "id": "C9",
+      "title": "Per-Call Content Cap Missing",
+      "hd_reference": "HD-011",
+      "patterns": [
+        {
+          "id": "C9.1",
+          "title": "Single Drafter Call Too Large",
+          "severity": "S1",
+          "trigger_keywords": ["한 호출 출력 분량 미선언", "단일 호출 한도 없음"],
+          "detection": "drafter agent 정의에 output token cap 검사",
+          "sources_external": ["S-C02", "S-C05", "S-C09"],
+          "user_baseline_hit": "pm-section-drafter(7018자 정의), 다른 drafter도 유사",
+          "mitigation": "per-call output cap + 자동 분할 (예: 섹션 > 4K → 2 sub-call)",
+          "expected_savings": "-28.4% cost-of-pass (Efficient Agents 실측)",
+          "meta_principle_violation": 3
+        }
+      ]
+    },
+    {
+      "id": "C10",
+      "title": "Architecture Pattern Mis-fit",
+      "patterns": [
+        {
+          "id": "C10.1",
+          "title": "Reflexive Architecture Without Pareto Check",
+          "severity": "S2",
+          "trigger_keywords": ["무한 재실행 루프", "iter cap 없음"],
+          "detection": "하네스 정의 재시도 횟수 명시 검사",
+          "sources_external": ["S-C04"],
+          "external_n": 1,
+          "user_baseline_hit": "paper-maker editor-chief 3회 cap(좋은 예); 다른 하네스 검사 필요",
+          "mitigation": "계층형 baseline + hybrid 89% accuracy @ 1.15× cost. 재시도 hard cap 3회",
+          "expected_savings": "-40% (반사형 → 계층형)",
+          "meta_principle_violation": 2
+        },
+        {
+          "id": "C10.2",
+          "title": "Feedforward Without Feedback (Or Vice Versa)",
+          "severity": "S3",
+          "trigger_keywords": ["prompt 가이드만", "linter/test/review 없음"],
+          "detection": "하네스 정의 sensors 단계 + guides 단계",
+          "sources_external": ["S-C07", "S-C08"],
+          "user_baseline_hit": "다수 하네스 두 루프 분석 필요",
+          "mitigation": "guides + sensors 두 루프 정의",
+          "expected_savings": "가이드만 = 실수 반복 토큰 낭비 방지",
+          "meta_principle_violation": 1
+        }
+      ]
+    }
+  ],
+  "task_to_model_matrix": [
+    {"task": "결정적 변환 (regex 가능) - citation·BibTeX·1:1 매핑·포맷 정규화", "model": "Python", "rationale": "Fowler computational sensors, Augment deterministic constraints, HD-003", "sources": ["S-C07", "S-C08", "S-C09"], "price_vs_opus_input": "free"},
+    {"task": "파일 탐색·grep·코드베이스 search", "model": "Haiku", "rationale": "Anthropic Explore agent 빌트인 = Haiku", "sources": ["A013", "S-B016", "S-B031"], "price_vs_opus_input": "-80%"},
+    {"task": "패턴매칭·룰 기반 분류 (short input)", "model": "Haiku", "rationale": "morphllm Haiku 20x cheaper for mechanical", "sources": ["A013", "S-B017", "S-B031"], "price_vs_opus_input": "-80%"},
+    {"task": "짧은 정형 요약 (<=1 단락)", "model": "Haiku", "rationale": "tech-insider routing 60% Haiku", "sources": ["S-B031", "S-B017"], "price_vs_opus_input": "-80%"},
+    {"task": "자연어 정형 출력 (JSON·표 생성)", "model": "Sonnet", "rationale": "Sonnet handles most coding tasks", "sources": ["A001", "S-B017", "S-B018"], "price_vs_opus_input": "-40%"},
+    {"task": "표준 코드 작성·디버깅", "model": "Sonnet", "rationale": "Anthropic 공식 권고", "sources": ["A001", "S-B016", "S-B017"], "price_vs_opus_input": "-40%"},
+    {"task": "멀티턴 코드 리뷰", "model": "Sonnet", "rationale": "Anthropic 공식 + tech-insider", "sources": ["A001", "S-B017"], "price_vs_opus_input": "-40%"},
+    {"task": "보고서/문서 집필 (<=5000자)", "model": "Sonnet", "rationale": "Anthropic 공식 + velog", "sources": ["A001", "S-B018"], "price_vs_opus_input": "-40%"},
+    {"task": "학술 페이퍼·정책 페이퍼 집필 (high-stake, 5000자+)", "model": "Opus", "rationale": "HD paper-maker 실측 사용", "sources": ["S-C09"], "price_vs_opus_input": "0% (정당)"},
+    {"task": "깊은 reasoning·아키텍처 결정", "model": "Opus", "rationale": "Anthropic 공식 reserve Opus for architectural", "sources": ["A001"], "price_vs_opus_input": "0% (정당)"},
+    {"task": "창의적 자유 생성 (5000자+, 톤 중요)", "model": "Opus", "rationale": "multi-step reasoning", "sources": ["A001"], "price_vs_opus_input": "0% (정당)"},
+    {"task": "팩트체크 (일반)", "model": "Sonnet", "rationale": "Anthropic + tech-insider", "sources": ["A001", "S-B017"], "price_vs_opus_input": "-40%"},
+    {"task": "팩트체크 (학술 high-stake)", "model": "Opus", "rationale": "paper-maker fact-checker 채택", "sources": ["S-C09"], "price_vs_opus_input": "0% (정당)"},
+    {"task": "번역 (실용 일상)", "model": "Sonnet", "rationale": "Anthropic + velog", "sources": ["A001", "S-B018"], "price_vs_opus_input": "-40%"},
+    {"task": "번역 (문학·격조)", "model": "Opus", "rationale": "bearblog 1.5M 조회 가이드 권고", "sources": ["S-B016"], "price_vs_opus_input": "0% (정당)"},
+    {"task": "ESL/언어 교육 콘텐츠", "model": "Sonnet", "rationale": "coordination task", "sources": ["A001"], "price_vs_opus_input": "-40%"},
+    {"task": "시각·이미지 프롬프트 설계", "model": "Sonnet", "rationale": "Anthropic 공식", "sources": ["A001"], "price_vs_opus_input": "-40%"},
+    {"task": "데이터 파싱 (CSV→JSON, HTML, PDF 표)", "model": "Python", "rationale": "PDF 45K→2K tokens, Fowler", "sources": ["S-B024", "S-C07"], "price_vs_opus_input": "free"},
+    {"task": "카탈로그/메타 정합성 점검", "model": "Python", "rationale": "Fowler computational sensors", "sources": ["S-C07"], "price_vs_opus_input": "free"},
+    {"task": "짧은 도메인 응답 (FAQ류)", "model": "Haiku", "rationale": "tech-insider Haiku 60%", "sources": ["S-B031", "S-B017"], "price_vs_opus_input": "-80%"},
+    {"task": "에이전트 팀 팀원 (조정 작업)", "model": "Sonnet", "rationale": "Anthropic Use Sonnet for teammates", "sources": ["A002"], "price_vs_opus_input": "-40%"},
+    {"task": "코드베이스 탐색 서브에이전트", "model": "Haiku", "rationale": "Anthropic Explore 빌트인 = Haiku", "sources": ["A013"], "price_vs_opus_input": "-80%"},
+    {"task": "보일러플레이트·간단 수정", "model": "Haiku", "rationale": "morphllm Sonnet vs Haiku", "sources": ["S-B031"], "price_vs_opus_input": "-80%"},
+    {"task": "log/output 압축 (grep 가능)", "model": "Python/shell", "rationale": "Anthropic hook 예시 10000라인 -> 수백 토큰", "sources": ["A016"], "price_vs_opus_input": "free"}
+  ],
+  "hd_adoption": [
+    {"hd": "HD-003", "external_n": 4, "adopted": true, "category": "C2", "note": "★ flagship - 91분→30초 사용자 실측 1 + Augment·Fowler·Zhang 3"},
+    {"hd": "HD-010", "external_n": 1, "adopted": true, "category": "C8", "note": "구조적 일치만 (Tokenomics) - 사용자 hotspot 등록"},
+    {"hd": "HD-011", "external_n": 2, "adopted": true, "category": "C9", "note": "★ SkillReducer + Efficient Agents"},
+    {"hd": "HD-020", "external_n": 2, "adopted": true, "category": "C1.1", "note": "★ SkillReducer + Efficient Agents"},
+    {"hd": "HD-007", "external_n": 1, "adopted": "partial", "category": "C3.2/C10.1", "note": "arXiv:2603.22651 (Benchmarking Multi-Agent)"},
+    {"hd": "HD-001", "external_n": 1, "adopted": "partial-ref-only", "category": null, "note": "Zhang 2026 부분 일치, 본문 미등록"},
+    {"hd": "HD-002", "external_n": 0, "adopted": false, "category": null},
+    {"hd": "HD-004", "external_n": 0, "adopted": false, "category": null},
+    {"hd": "HD-005", "external_n": 0, "adopted": false, "category": null},
+    {"hd": "HD-006", "external_n": 0, "adopted": false, "category": null},
+    {"hd": "HD-008", "external_n": 0, "adopted": false, "category": null},
+    {"hd": "HD-009", "external_n": 0, "adopted": false, "category": null, "note": "사용자 baseline 6/27 wall-clock 언급, v2 후보"},
+    {"hd": "HD-012", "external_n": 0, "adopted": false, "category": null},
+    {"hd": "HD-013", "external_n": 0, "adopted": false, "category": null},
+    {"hd": "HD-014", "external_n": 0, "adopted": false, "category": null},
+    {"hd": "HD-015", "external_n": 0, "adopted": false, "category": null},
+    {"hd": "HD-016", "external_n": 1, "adopted": "partial", "category": "C10.2", "note": "Fowler dual-loop"},
+    {"hd": "HD-017", "external_n": 0, "adopted": false, "category": null},
+    {"hd": "HD-018", "external_n": 1, "adopted": "partial-ref-only", "category": null, "note": "Tokenomics 구조 일치, C8 인접"},
+    {"hd": "HD-019", "external_n": null, "adopted": "N/A", "category": null, "note": "관찰적"},
+    {"hd": "HD-021", "external_n": null, "adopted": "N/A", "category": null, "note": "해결됨"}
+  ],
+  "new_patterns_from_scout_c": [
+    {"id": "N1", "label": "라우팅 설명 부재 (SkillReducer 26.4%)", "external_n": 1, "adopted": false, "note": "사용자 카탈로그는 반대(트리거 많음). v2 후보"},
+    {"id": "N2", "label": "비실행 콘텐츠 60%+", "external_n": 1, "adopted": true, "category": "C4.5", "note": "사용자 SKILL.md 평균 8693자 적용"},
+    {"id": "N3", "label": "계층형 Pareto 우위", "external_n": 1, "adopted": true, "category": "C10.1"},
+    {"id": "N4", "label": "Plan-Execute-Verify 이중 루프", "external_n": 1, "adopted": true, "category": "C10.2"},
+    {"id": "N5", "label": "토큰 경제학 68× 규모", "external_n": 1, "adopted": "context-only", "note": "분류학 본문 미등록, 컨텍스트 메모"}
+  ],
+  "user_hotspots_top10": [
+    {"rank": 1, "pattern_id": "C1.1", "impact": "103/104 = 99.0% opus", "recommended_action": "structural-visual-designer, ainews-delivery-engineer 등 14개 5k+ 에이전트 Sonnet 다운그레이드, read-only는 Haiku"},
+    {"rank": 2, "pattern_id": "C2.1", "impact": "20 RISKY agents", "recommended_action": "Top3 (uap-case-parser 10840자, pm-evidence-curator det_kw=3, uap-source-fetcher det_kw=3) Python phase 분리"},
+    {"rank": 3, "pattern_id": "C5.1", "impact": "27/27 하네스 caching 0회", "recommended_action": "paper-maker SKILL.md(23138자) 1순위로 cache_control 적용"},
+    {"rank": 4, "pattern_id": "C3.1~C3.5", "impact": "26/28 (93%) multi-agent; audit R3 FAIL on harnesses missing 3+ of 5 cost-optimization patterns", "recommended_action": "Apply references/optimal_team_composition.md matrix: role-tier mix (R3a), common-context cache_control (R3b), parallel/sequential declaration (R3c), wall-clock + per-call cap (R3d), file-based handoff (R3e)"},
+    {"rank": 5, "pattern_id": "C4.5", "impact": "32 skill x 8693자 = 278K 상시 컨텍스트", "recommended_action": "본문 5000자+ 스킬 references/ 분리"},
+    {"rank": 6, "pattern_id": "C4.1", "impact": "27 하네스 + 14.3 트리거/하네스", "recommended_action": "운영만 본문, 이력 changelog 분리, 워크플로 Skills 이전"},
+    {"rank": 7, "pattern_id": "C9.1", "impact": "pm-section-drafter 7018자 + 다른 drafter", "recommended_action": "per-call output cap + 자동 분할 트리거"},
+    {"rank": 8, "pattern_id": "C3.3", "impact": "14/27 = 8+ agents (52%)", "recommended_action": "Brief 룰: 절감 > 30K tokens일 때만 서브에이전트"},
+    {"rank": 9, "pattern_id": "C10.1", "impact": "다수 재시도 루프", "recommended_action": "hard cap 3회, 계층형 baseline + hybrid"},
+    {"rank": 10, "pattern_id": "C8.1", "impact": "paper-maker 실측 1건 + drafter 잠재", "recommended_action": "산출물 경로 먼저, 보고 200자 cap"}
+  ],
+  "stats": {
+    "categories": 10,
+    "patterns_total": 31,
+    "patterns_adopted_external_n_ge_2": 26,
+    "patterns_adopted_user_hotspot": 5,
+    "task_to_model_matrix_rows": 24,
+    "hd_adopted": 4,
+    "hd_partial": 4,
+    "hd_not_adopted": 13,
+    "new_patterns_adopted": 3,
+    "new_patterns_context_only": 1,
+    "new_patterns_v2_candidate": 1,
+    "c3_refactor": "v1.0.1 (2026-05-14) — C3 reframed from cost-multiplier to team-composition (cost-optimized); 3 patterns → 6 patterns; R3 → R3a~R3e 5 sub-rules"
+  }
+}

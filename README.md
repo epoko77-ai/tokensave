@@ -1,5 +1,12 @@
 # plz-save-token
 
+[![Version](https://img.shields.io/badge/version-1.0-blue)](https://github.com/epoko77-ai/plz-save-token/releases/tag/v1.0)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Dependencies](https://img.shields.io/badge/deps-stdlib_only-green.svg)](#)
+[![Companion](https://img.shields.io/badge/companion-harness--diagnostic-purple)](https://github.com/epoko77-ai/harness-diagnostic)
+[![GitHub stars](https://img.shields.io/github/stars/epoko77-ai/plz-save-token?style=social)](https://github.com/epoko77-ai/plz-save-token/stargazers)
+
 > **Cost-optimization lint for multi-agent Claude Code harnesses.**
 > Helps you build well-formed multi-agent teams. Catches misallocated team compositions and burning cost patterns — not the multi-agent design itself.
 > Companion to [harness-diagnostic](https://github.com/epoko77-ai/harness-diagnostic): one diagnoses, the other reduces.
@@ -140,6 +147,41 @@ $ python3 scripts/model_selector.py --task "grep agent definitions for determini
 
 Decision tree encoded directly in Python. Zero LLM calls per query.
 
+## The catalog as standalone reference
+
+The audit script and the decision-tree CLI are deliberately thin shells over a more durable asset: **the pattern taxonomy itself**. You can use `plz-save-token` without running any code at all:
+
+- **[`references/taxonomy.md`](references/taxonomy.md)** — 10 categories × 31 sub-patterns. Each card includes trigger keywords, detection method, mitigation, expected savings range, and **two or more independent external citations** (Anthropic official + community + academic). 19 KB, designed to be read end-to-end in 30 minutes.
+- **[`references/taxonomy.json`](references/taxonomy.json)** — same content as machine-parsable JSON. Drop into your own dashboards, tool definitions, or downstream lints.
+- **[`references/task_to_model_matrix.md`](references/task_to_model_matrix.md)** — the 24-row primary lever, ready to drop into design docs, RFCs, onboarding guides.
+- **[`references/optimal_team_composition.md`](references/optimal_team_composition.md)** — 8 workload patterns × 5 cost-optimization patterns. Use it to design a new multi-agent harness, with or without the rest of this repo.
+- **[`references/anti_patterns_atlas.md`](references/anti_patterns_atlas.md)** — 31 sub-pattern quick-reference cards. One paragraph per pattern. The "skim-by-card" view.
+
+The reference documents are explicitly designed to be useful **detached from the tooling** — for design review, paper citation, onboarding new hires onto a multi-agent harness team, or simply as a checklist when authoring a new SKILL.md. If the only thing you ever do is read [`taxonomy.md`](references/taxonomy.md) once and bookmark the [task-to-model matrix](references/task_to_model_matrix.md), this repo has paid for itself.
+
+## How to cite
+
+If `plz-save-token`'s taxonomy or matrices inform your design, RFC, blog post, or paper, the citation below works:
+
+```
+Lee, Seung-hyun. "plz-save-token: Cost-optimization lint for multi-agent
+Claude Code harnesses." v1.0, 2026.
+https://github.com/epoko77-ai/plz-save-token
+```
+
+For BibTeX:
+```bibtex
+@misc{plzsavetoken2026,
+  author = {Lee, Seung-hyun},
+  title  = {plz-save-token: Cost-optimization lint for multi-agent Claude Code harnesses},
+  year   = {2026},
+  version = {1.0},
+  url    = {https://github.com/epoko77-ai/plz-save-token}
+}
+```
+
+Catalog references can be cited individually with the sub-pattern ID (e.g., `C2.1 (HD-003 verbatim-mapping)`); each pattern carries its own external source IDs (`A###`, `S-B###`, `S-C##`, `HD-###`) for downstream traceability.
+
 ## What audit.py catches (9 rules)
 
 | Rule | Detection | Severity |
@@ -167,9 +209,10 @@ plz-save-token/
 │   ├── estimate_cost.py                  # pricing SSOT, shared by both above
 │   └── hook_check.py                     # MODE 4 — runtime warning hook
 ├── references/
-│   ├── task_to_model_matrix.md           # 24-row matrix (HEADLINE #1)
+│   ├── taxonomy.md · taxonomy.json       # 10 cats × 31 sub-patterns, full evidence (CATALOG)
+│   ├── task_to_model_matrix.md           # 24-row matrix (HEADLINE #1 — PRIMARY LEVER)
 │   ├── optimal_team_composition.md       # multi-agent well-formed matrix (HEADLINE #3)
-│   ├── anti_patterns_atlas.md            # 31 sub-pattern cards (C3 reframed)
+│   ├── anti_patterns_atlas.md            # 31 sub-pattern quick-reference cards
 │   ├── python_vs_llm_tree.md · prompt_caching_checklist.md
 │   ├── parallel_patterns.md · hook_examples.md
 │   └── meta_self_check.md                # 9-step self-compliance checklist
