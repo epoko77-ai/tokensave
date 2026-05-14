@@ -85,6 +85,17 @@ python3 scripts/estimate_cost.py --compare-all --input-tokens 30000 --output-tok
 
 Standard library only. No `pip install`. Python 3.10+.
 
+### Deploy as a Claude Code skill (auto-activation)
+
+For automatic activation across all Claude Code sessions — typing "내 하네스 감사해줘" or "what model fits this task?" auto-triggers the skill — install it as a self-contained skill:
+
+```bash
+mkdir -p ~/.claude/skills/plz-save-token
+cp -r SKILL.md scripts references ~/.claude/skills/plz-save-token/
+```
+
+The skill is fully self-contained: SKILL.md + scripts/ + references/ all under `~/.claude/skills/plz-save-token/`. Subsequent `git pull` followed by the same `cp -r` keeps it in sync. The SKILL.md frontmatter declares 20+ trigger keywords (Korean + English).
+
 **Single-harness mode with custom prefix mapping** — `audit.py` discovers agents by matching harness name against a prefix map. The default map contains generic placeholders. Customize without touching code:
 
 ```bash
