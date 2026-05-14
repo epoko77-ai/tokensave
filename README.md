@@ -172,6 +172,10 @@ plz-save-token/
 │   └── meta_self_check.md                # 9-step self-compliance checklist
 ├── examples/
 │   ├── personal_baseline.md              # real-world 27-harness audit data (N=1 operator)
+│   ├── case_studies/                     # measured + simulated cost-vs-quality comparisons
+│   │   ├── A_paper_maker_retrospective.md   # FAIL → PASS, -72% cost (simulated)
+│   │   └── B_policyblind_warn_to_pass.md    # WARN → PASS, -56% cost, 2-hour fix (simulated)
+│   ├── contributed_baselines/            # community-submitted baselines (empty — be first)
 │   └── README.md                         # how to read / contribute your own baseline
 └── _workspace/                            # research notes, audit baseline (read-only, gitignored)
 ```
