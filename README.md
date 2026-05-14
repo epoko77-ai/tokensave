@@ -195,17 +195,19 @@ Catalog references can be cited individually with the sub-pattern ID (e.g., `C2.
 
 ## What audit.py catches (9 rules)
 
-| Rule | Detection | Severity |
-|------|-----------|---------:|
-| R1 (C1.1) | `model: opus` >= 80% across agents | S1 |
-| R2 (C2.x HD-003) | Deterministic keyword + no code-split phase | S1 |
-| R3 (C3) | 5+ agent team missing cost-optimization patterns (R3a role-tier mix / R3b cache_control / R3c parallel-or-serial declared / R3d wall-clock + cap / R3e file-based handoff). 3-tier: 5/5 met = PASS, 3-4/5 = WARN, 0-2/5 = FAIL. | S1 |
-| R4 (C4.1) | CLAUDE.md or SKILL.md > 200 lines / 8K chars | S1 |
-| R5 (C5.1) | No `cache_control` or "prompt caching" mention | S1 |
-| R6 (C7.1) | Repeated full-file reads (static heuristic) | S2 |
-| R7 (C8.1 HD-010) | No `.checkpoints/` or report-first convention | S1 |
-| R8 (C9.1 HD-011) | Writer/drafter agent with no per-call output cap | S1 |
-| R9 (C4.5) | SKILL.md > 5K chars with 0 phase / 0 tree markers | S2 |
+> **Core 5 vs Extended 4.** Pareto reality from one operator's baseline: R1, R2, R3, R5, R8 collectively explain ~80% of the cost impact. Fix those five and the bill drops dramatically; R4/R6/R7/R9 are still useful but second-order. The catalog is 31 sub-patterns across 10 categories so it stays honest as it grows, but for first-time audit triage start with the five marked ★.
+
+| Rule | Detection | Severity | Tier |
+|------|-----------|---------:|:-----|
+| ★ R1 (C1.1) | `model: opus` >= 80% across agents | S1 | **Core** |
+| ★ R2 (C2.x HD-003) | Deterministic keyword + no code-split phase | S1 | **Core** |
+| ★ R3 (C3) | 5+ agent team missing cost-optimization patterns (R3a role-tier mix / R3b cache_control / R3c parallel-or-serial declared / R3d wall-clock + cap / R3e file-based handoff). 3-tier: 5/5 met = PASS, 3-4/5 = WARN, 0-2/5 = FAIL. | S1 | **Core** |
+| R4 (C4.1) | CLAUDE.md > 200 lines / SKILL.md > 8K chars **without** matching actionable content (Phase/MODE definitions, decision tree references) | S1 | Extended |
+| ★ R5 (C5.1) | No `cache_control` or "prompt caching" mention | S1 | **Core** |
+| R6 (C7.1) | Repeated full-file reads (static heuristic) | S2 | Extended |
+| R7 (C8.1 HD-010) | No `.checkpoints/` or report-first convention | S1 | Extended |
+| ★ R8 (C9.1 HD-011) | Writer/drafter agent with no per-call output cap | S1 | **Core** |
+| R9 (C4.5) | SKILL.md > 5K chars with 0 phase / 0 tree markers | S2 | Extended |
 
 R6 and R7 are partial under static detection — pair with the NL diagnostic prompt or Hook-mode runtime instrumentation. Each finding ships with file:line evidence, suggested fix, source IDs, and decision (FAIL / WARN / PASS / N/A).
 
@@ -249,7 +251,7 @@ Hybrid workflow: run `harness-diagnostic` first for structural gaps, then `token
 ## Limitations and caveats
 
 - **Single-operator baseline.** The headline numbers (99% Opus, 0/27 caching) come from one person's 27-harness catalog. The taxonomy is built on N>=2 external sources, but baseline calibration is N=1. Inbound diagnostics are invited.
-- **Claude Code specific.** Detection rules look for `model: opus` frontmatter, `~/.claude/agents/` layout, and SKILL.md conventions. LangChain, CrewAI, AutoGen need an adapter layer — planned for v1.1. **External validation (2026-05-14):** `audit.py` was run against three external frameworks (Anthropic Cookbook, LangChain Academy, CrewAI examples). R5 (cache_control absence) fired as a true positive in all three automatically. R2, R3, R8 were confirmed present by manual inspection but require an adapter — projected 7/9 rules with v1.1 adapters for Python-class harnesses, LangGraph StateGraph, and CrewAI YAML.
+- **Claude Code specific.** Detection rules look for `model: opus` frontmatter, `~/.claude/agents/` layout, and SKILL.md conventions. LangChain, CrewAI, AutoGen need an adapter layer — planned for v1.1. **Cross-framework spot check (2026-05-14, not yet a validation claim):** `audit.py` was run against three external frameworks (Anthropic Cookbook, LangChain Academy, CrewAI examples). R5 (the trivial `cache_control` text-mention check) fired in all three. R2, R3, R8 patterns *appear* by manual inspection in those repos but the audit script cannot detect them without a framework adapter — so this is one auto-firing rule plus three anecdotal observations, not a validation of the catalog. Real validation comes from external operators running `audit.py` on their own setups (issue templates in `.github/`) and from v1.1 adapters that let the static rules fire across non-Claude-Code frameworks. The "external validation" wording in the previous version of this README overclaimed; this revision is honest about the scope.
 - **Pricing is point-in-time.** Cost estimates use Anthropic per-MTok prices as of 2026-05-14, encoded as a single constant in `scripts/estimate_cost.py`. Update one constant when prices change; every downstream script picks it up.
 - **R6 and R7 are partial under static detection.** Repeated-read patterns and report-first convention violations are detectable with higher fidelity at runtime. The Hook mode covers some of this; a fully instrumented runtime collector is future work.
 - **Korean reference content alongside English.** The project began bilingual; internal research notes remain in Korean. All user-facing artifacts (README, SKILL.md, references/) are English.
@@ -270,7 +272,7 @@ A measurement framework (`quality_delta` scoring tool, golden task harness, retr
 
 ## Roadmap
 
-- **v1.1** — framework adapters for LangChain/LangGraph StateGraph, CrewAI YAML, and Python-class harnesses. External validation (2026-05-14) confirms R2, R3, R8 present in external frameworks; adapters will promote them to auto-fire alongside R5. Broader inbound harness diagnostics; N>=2 confirmation promotes hotspots to registered rules.
+- **v1.1** — framework adapters for LangChain/LangGraph StateGraph, CrewAI YAML, and Python-class harnesses. Cross-framework spot check (2026-05-14) suggests R2, R3, R8 patterns appear in external frameworks; adapters will let the static rules actually verify this (today's check is a single auto-firing rule plus manual inspection — not a validation claim). Broader inbound harness diagnostics; N>=2 confirmation promotes hotspots to registered rules.
 - **v1.2** — quality measurement: `quality_delta` scoring tool, golden-task harness, retry-cost calculator. Closes the most important gap in `task_to_model_matrix.md`. Also: `model_selector.py` tree fix for `grep`/`count` keywords.
 - **v1.3** — `audit.py --json` hotspot key bug fix (top-10 hotspots render in text but not yet JSON). SKILL.md additional slimming with headline matrices fully delegated to `references/`.
 - **v2.0** — full cross-framework coverage; community-contributed baselines aggregated; matrix rows revised by converging case studies.
