@@ -6,6 +6,9 @@
 
 **TL;DR.** I audited my own 27-harness Claude Code setup: 99% of agents on Opus, 0 of 27 harnesses using prompt caching, 20 agents routing regex through an LLM, 93% spinning up 5+ agent teams. The teams are mostly fine — paper-maker, ainews-daily, policyblind are well-formed hierarchical/pipeline harnesses. The problem is paying the 7×~15× multiplier without applying the five cost-optimization patterns that make multi-agent worth it. `plz-save-token` is the catalog, audit script, decision tree, and optimal team composition matrix I built to make multi-agent harnesses well-formed instead of just expensive. Standard library only. Run `python3 scripts/audit.py` on your `~/.claude` to see your numbers in under five seconds.
 
+> ### The 80/20 rule (the heart of plz-save-token)
+> **Match task complexity to model tier first** — Python for deterministic work, Haiku for exploration, Sonnet for standard output, Opus for high-stake reasoning. This single lever is ~70-80% of the savings. The five team-composition patterns (cache_control, role-tier mix, parallel/sequential intent, wall-clock cap, file-based handoff) add ~30% on top — but only on top of a correct tier match. **Get the tier right first; optimize the team second.** Optimizing the team while the base tier is wrong is fractions of nothing.
+
 ---
 
 ## The problem

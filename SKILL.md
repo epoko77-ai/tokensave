@@ -59,6 +59,8 @@ See `examples/personal_baseline.md` for the full data.
 
 사용자가 새 작업을 요청했을 때 LLM 첫 응답 전 self-check 3단계.
 
+> **Pareto 위계 (반드시 인지).** Step 1·2 (task complexity → model tier 매칭)는 절감의 **~70-80% leverage**. Step 3 (team optimization)는 그 위에 **~30% multiplier**. 순서 절대 변경 금지 — base tier 안 맞은 상태에서 team optimization은 fractions of nothing. tier 먼저, team 다음.
+
 ### Step 1 — 이거 LLM 정말 필요한가?
 
 작업 설명에 다음 결정적 keyword가 보이면 **Python 권고 게이트** 발동:
