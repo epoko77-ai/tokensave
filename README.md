@@ -4,308 +4,202 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Dependencies](https://img.shields.io/badge/deps-stdlib_only-green.svg)](#)
-[![Companion](https://img.shields.io/badge/companion-harness--diagnostic-purple)](https://github.com/epoko77-ai/harness-diagnostic)
-[![GitHub stars](https://img.shields.io/github/stars/epoko77-ai/tokensave?style=social)](https://github.com/epoko77-ai/tokensave/stargazers)
+[![English README](https://img.shields.io/badge/README-English-lightgrey)](README.en.md)
 
-> **Cost-optimization lint for multi-agent Claude Code harnesses.**
-> Helps you build well-formed multi-agent teams. Catches misallocated team compositions and burning cost patterns — not the multi-agent design itself.
-> Companion to [harness-diagnostic](https://github.com/epoko77-ai/harness-diagnostic): one diagnoses, the other reduces.
+> 🌏 **English version available:** [README.en.md](README.en.md) — full English documentation including case studies and citations.
 
-**TL;DR.** I audited my own 27-harness Claude Code setup: 99% of agents on Opus, 0 of 27 harnesses using prompt caching, 20 agents routing regex through an LLM, 93% spinning up 5+ agent teams. The teams are mostly fine — paper-maker, ainews-daily, policyblind are well-formed hierarchical/pipeline harnesses. The problem is paying the 7×~15× multiplier without applying the five cost-optimization patterns that make multi-agent worth it. `tokensave` is the catalog, audit script, decision tree, and optimal team composition matrix I built to make multi-agent harnesses well-formed instead of just expensive. Standard library only. Run `python3 scripts/audit.py` on your `~/.claude` to see your numbers in under five seconds.
+> **멀티에이전트 Claude Code 하네스를 위한 토큰 비용 lint 도구.**
+> 멀티에이전트를 막는 게 아니라, **잘 형성된(well-formed)** 멀티에이전트를 짓도록 돕는다.
+> 자매 저장소: [harness-diagnostic](https://github.com/epoko77-ai/harness-diagnostic) — 구조적 진단 / tokensave — 비용 최적화.
 
-> ### The 80/20 rule (the heart of tokensave)
-> **Match task complexity to model tier first** — Python for deterministic work, Haiku for exploration, Sonnet for standard output, Opus for high-stake reasoning. This single lever is ~70-80% of the savings. The five team-composition patterns (cache_control, role-tier mix, parallel/sequential intent, wall-clock cap, file-based handoff) add ~30% on top — but only on top of a correct tier match. **Get the tier right first; optimize the team second.** Optimizing the team while the base tier is wrong is fractions of nothing.
+> 📚 **한국어 분류학:** [`references/taxonomy.md`](references/taxonomy.md) — 220줄, 10 카테고리 × 31 sub-patterns 전체.
+> 📂 **참고 자료(영어):** [`references/`](references/) · [`examples/case_studies/`](examples/case_studies/) — references, case studies는 영어로 유지(한국·해외 양쪽 참조 가능).
 
 ---
 
-## The problem
+## TL;DR
 
-Multi-agent Claude Code teams do cost 7×~15× per session — and they are often worth it. paper-maker's 16-agent hierarchical reviewer setup catches things a single session never would. ainews-daily's 7-stage pipeline buys real wall-clock collapse. policyblind's 8-agent cross-verify is exactly the kind of independent-reasoning isolation that justifies the multiplier.
+사용자(작성자) 본인의 27개 하네스 Claude Code 카탈로그를 직접 감사한 결과:
 
-The trap is paying that multiplier **without the five cost-optimization patterns** that make it justifiable. `tokensave` catches the missing patterns, not the team itself. Each `SKILL.md` and each agent definition is usually fine internally. The failures live *between* files, in the team's composition:
+- 에이전트 **99%가 Opus 사용** (103/104)
+- **프롬프트 캐싱 0/27** (모든 하네스가 미사용)
+- **20개 에이전트가 결정적 작업(regex·verbatim 매핑)을 LLM에 위임** — 한 사례는 91분 Opus 호출 후 산출물 0
+- **5+ agent 팀이 93%** (25/27)
 
-- **Model-tier misallocation across the team.** Every agent — orchestrator, worker, reviewer — defaults to Opus. Read-only scouts, regex classifiers, boilerplate writers all pay Opus prices to do work Sonnet or Haiku finishes at 40-80% less. The multi-agent multiplier compounds the wrong choice.
-- **Deterministic work routed through an LLM (the HD-003 trap).** Verbatim 1:1 mapping, BibTeX, CSV-to-JSON parsing, citation formatting — provably regex-plus-dictionary work — gets sent to an LLM that loops 91 minutes on tool calls. Same work in Python: 30 seconds.
-- **Common context re-paid every call.** Cached input reads cost 10% of base. A 23 KB `SKILL.md` × 5 agents × 10 invocations = paying for the SKILL.md 50 times instead of once. Nobody notices because savings only show up when you opt in to `cache_control`.
-- **No parallel/sequential intent, no caps, no file-based handoff.** Execution mode is accidental; runaway risk is uncapped; agents leak tokens through SendMessage instead of writing to `_workspace/`. The five patterns together turn a 7×~15× multiplier into something the harness actually deserves.
-- **SKILL.md and CLAUDE.md bloat.** Average SKILL.md in one operator's catalog: 8,693 chars. Largest: 32,987. Most of that is decoration — changelogs, roadmaps, philosophy — not phase definitions the agent needs at runtime.
+팀 자체는 대부분 정당하다 — paper-maker, ainews-daily, policyblind 같은 사례는 well-formed hierarchical/pipeline 구조. 문제는 **7×~15× 곱연산을 5개 비용 최적화 패턴 없이 지불**하는 것.
 
-All invisible to file-level linters like agnix. Visible only when you measure the harness as a system. The optimal team composition matrix (`references/optimal_team_composition.md`) is the prescription.
+`tokensave`은 (1) 분류학(10 카테고리 × 31 sub-patterns), (2) 정적 감사 스크립트 `audit.py`, (3) LLM 호출 0회 결정 트리 `model_selector.py`, (4) 24행 작업→모델 매트릭스, (5) 멀티에이전트 최적 팀 구성 매트릭스를 묶은 메타 스킬. **표준 라이브러리만 사용 (외부 의존 0).**
 
-## A real-world baseline (the why)
+5초 안에 본인 카탈로그 감사: `python3 scripts/audit.py`
 
-Numbers from one operator's 27-harness Claude Code catalog, 2026-05-14 static audit:
+---
 
-| # | Finding | Value | Rule |
-|---|---------|-------|------|
-| H1 | Opus model share across all agents | **99.0% (103/104)** | R1 FAIL |
-| H2 | Harnesses mentioning prompt caching | **0/27** | R5 FAIL |
-| H3 | Multi-agent (5+ team) harnesses missing 3+ of 5 cost-optimization patterns | **~15/25 of 5+-team harnesses (60%)** | R3 FAIL |
-| H4 | Agents routing deterministic work through LLM (HD-003) | **20 RISKY** | R2 FAIL |
-| H5 | Writer/drafter agents with no per-call output cap | **13/14** | R8 FAIL |
+## 80/20 원칙 (도구의 심장)
 
-Footnote: numbers from one operator's `~/.claude` (27 harnesses, 104 agents, 32 skills). Full data in `examples/personal_baseline.md`. Broader inbound diagnostics welcome — see Contributing. H1 (99% Opus) is the kind of uniform-tier choice you would never make at the file level but is the default when no one is looking at the system.
+> **작업 복잡도를 모델 티어와 먼저 매칭하라** — 결정적 작업은 Python, 탐색은 Haiku, 표준 출력은 Sonnet, high-stake reasoning은 Opus. **이 단일 레버가 절감의 ~70-80%.**
+> 5개 팀 구성 패턴(cache_control, role-tier mix, 병렬/직렬 의도 선언, wall-clock cap, file-based handoff)은 그 위에 ~30% multiplier로 얹힌다. **단 올바른 tier 매칭 위에서만.**
+> **tier 먼저, team 다음.** base tier가 틀린 상태에서 team 최적화는 fractions of nothing이다.
 
-## What tokensave gives you
+---
 
-Four modes, three headline artifacts.
+## 문제 (1줄씩)
 
-| Mode | What it does | Cost |
-|------|--------------|------|
-| **Pre-flight** | `model_selector.py` — natural-language task → recommended model + rationale + cost. | 0 LLM calls |
-| **Authoring** | 9 forbidden-pattern checklist + 24-row task-to-model matrix for writing new SKILL.md / agents | passive |
-| **Audit** | `audit.py` — 9 static rules across your `~/.claude`. JSON output supported. | ~5 sec, 0 LLM calls |
-| **Hook** | `settings.json` runtime guard on `PreToolUse:Task` and `UserPromptSubmit`. Never blocks. | 0 blocking |
+- **모델 티어 오배정** — orchestrator·worker·reviewer 모두 Opus 기본값. read-only scout, regex classifier, boilerplate writer가 Sonnet/Haiku 가격으로 40-80% 더 싸게 끝낼 일을 Opus 가격으로 지불.
+- **결정적 작업이 LLM에 묶임 (HD-003 트랩)** — verbatim 1:1 매핑, BibTeX, CSV→JSON 파싱은 regex+dictionary 작업. Python 30초가 Opus 91분 + 산출물 0과 같은 일을 한다.
+- **공통 컨텍스트 매번 재지불** — cached input은 base의 10%. 23KB SKILL.md × 5 agents × 10 호출 = 같은 SKILL.md 50번 지불. `cache_control` 누락 시 보이지 않는다.
+- **병렬/직렬 의도 없음, cap 없음, file-based handoff 없음** — 실행 모드가 우연. runaway risk 무한. SendMessage 남발로 토큰 누설.
+- **SKILL.md/CLAUDE.md 비대** — 본인 카탈로그 평균 8,693자, 최대 32,987자. 대부분 장식(changelog, roadmap, philosophy) — 런타임에 필요한 phase 정의 아님.
 
-Three headline artifacts:
+위 모두 file-level linter(agnix 등)는 못 잡는다. 시스템 단위로 측정해야 보인다.
 
-1. **`references/task_to_model_matrix.md`** — 24-row matrix mapping task types to Python / Haiku / Sonnet / Opus with source citations and cost-versus-Opus delta.
-2. **`scripts/model_selector.py`** — same matrix as a CLI decision tree. Zero LLM calls. Answers "what model for this task?" in under a second.
-3. **`references/optimal_team_composition.md`** — multi-agent well-formed matrix. 8 operator-grounded workload patterns × 5 cost-optimization patterns (role-tier mix, common-context caching, parallel/sequential declaration, wall-clock + per-call cap, file-based handoff). `audit.py` R3 sub-rules (R3a~R3e) map 1:1 to the 5 patterns. The thing that makes a 5+ team worth the multiplier instead of just expensive.
+---
 
-## Quick start (3 minutes)
+## 무엇이 들어있나
+
+**4가지 모드:**
+
+| 모드 | 무엇을 하나 | 비용 |
+|------|------------|------|
+| **Pre-flight** | `model_selector.py` — 자연어 작업 설명 → 추천 모델 + 근거 + 비용 추정 | LLM 0회 |
+| **Authoring** | 9대 금지 패턴 체크리스트 + 24행 task→model 매트릭스 | passive |
+| **Audit** | `audit.py` — `~/.claude` 전체에 9개 정적 룰 적용 | 약 5초, LLM 0회 |
+| **Hook** | `settings.json` 런타임 가드 (`PreToolUse:Task` + `UserPromptSubmit`) — 블로킹 안 함 | 0 blocking |
+
+**3개 헤드라인 산출물:**
+
+1. **[`references/task_to_model_matrix.md`](references/task_to_model_matrix.md)** — 작업 유형 24행 × 추천 모델 × 근거 + 출처 인용 (**Primary lever — 80/20에서 80**)
+2. **[`scripts/model_selector.py`](scripts/model_selector.py)** — 위 매트릭스를 코드로 인코딩한 CLI 결정 트리. 1초 응답
+3. **[`references/optimal_team_composition.md`](references/optimal_team_composition.md)** — 8개 workload 패턴 × 5개 비용 최적화 패턴 매트릭스 (Secondary optimization — 80/20에서 20)
+
+---
+
+## 빠른 시작 (3분)
 
 ```bash
 git clone https://github.com/epoko77-ai/tokensave
 cd tokensave
 
-# Audit your entire ~/.claude catalog (9 rules, ~5 seconds)
+# 전체 ~/.claude 카탈로그 감사 (9개 룰, 약 5초)
 python3 scripts/audit.py
-python3 scripts/audit.py --top 10                       # priority hotspots
-python3 scripts/audit.py /path/to/harness/root          # single harness
+python3 scripts/audit.py --top 10                       # 우선순위 hotspot top 10
+python3 scripts/audit.py /path/to/harness/root          # 단일 하네스
 python3 scripts/audit.py --json | jq .
 
-# Ask the decision tree what model to use
-python3 scripts/model_selector.py --task "extract tables from PDF, normalize to CSV"
-python3 scripts/model_selector.py --task "weekly tech column, 5000 words" --tokens 8000 --quality high
+# 결정 트리에 작업 던지기
+python3 scripts/model_selector.py --task "PDF에서 표 추출하고 CSV로 정규화"
+python3 scripts/model_selector.py --task "주간 칼럼 5000자 집필" --tokens 8000 --quality high
 
-# Compare model costs
-python3 scripts/estimate_cost.py --compare-all --input-tokens 30000 --output-tokens 5000
+# 모델별 비용 비교
+python3 scripts/estimate_cost.py --compare --input-tokens 30000 --output-tokens 5000
 ```
 
-Standard library only. No `pip install`. Python 3.10+.
+표준 라이브러리만. `pip install` 필요 없음. Python 3.10+.
 
-### Deploy as a Claude Code skill (auto-activation)
+### Claude Code 스킬로 배포 (자동 발동)
 
-For automatic activation across all Claude Code sessions — typing "내 하네스 감사해줘" or "what model fits this task?" auto-triggers the skill — install it as a self-contained skill:
+모든 새 Claude Code 세션에서 자동 활성화하려면 — "내 하네스 감사해줘" 또는 "이 작업 모델 뭐가 적절해" 입력 시 자동 발동 — self-contained 스킬로 설치:
 
 ```bash
 mkdir -p ~/.claude/skills/tokensave
 cp -r SKILL.md scripts references ~/.claude/skills/tokensave/
 ```
 
-The skill is fully self-contained: SKILL.md + scripts/ + references/ all under `~/.claude/skills/tokensave/`. Subsequent `git pull` followed by the same `cp -r` keeps it in sync. The SKILL.md frontmatter declares 20+ trigger keywords (Korean + English).
+스킬은 self-contained: SKILL.md + scripts/ + references/ 모두 `~/.claude/skills/tokensave/` 아래. 이후 `git pull` 후 같은 `cp -r` 한 번이면 sync. SKILL.md frontmatter에 20+ 한국어/영어 트리거 키워드 박혀있음.
 
-**Single-harness mode with custom prefix mapping** — `audit.py` discovers agents by matching harness name against a prefix map. The default map contains generic placeholders. Customize without touching code:
+---
 
-```bash
-export TOKENSAVE_HARNESS_PREFIX_MAP='{"my-harness":["mh-"],"another":["an-"]}'
-python3 scripts/audit.py /path/to/my-harness
-```
+## 분류학(catalog)이 도구만큼 가치 있다
 
-A full 27-harness example mapping is in `examples/personal_baseline.md §harness-mapping`.
+`audit.py`와 `model_selector.py`는 더 오래 가는 자산 위에 얹힌 얇은 껍데기 — **분류학 그 자체**.
 
-## How it was built (4-axis evidence, N>=2 rule)
+- **[`references/taxonomy.md`](references/taxonomy.md)** — 10 카테고리 × 31 sub-patterns. 각 카드는 트리거 키워드·검출 방법·완화책·예상 절감률·**2개 이상 독립 외부 인용**(Anthropic 공식 + 커뮤니티 + 학술) 포함. 220줄 19KB, 30분에 통독 가능. **이미 한국어**.
+- **[`references/taxonomy.json`](references/taxonomy.json)** — 같은 내용을 머신 파싱 가능 JSON으로. 외부 대시보드·도구 정의·downstream lint로 import 가능.
+- **[`references/task_to_model_matrix.md`](references/task_to_model_matrix.md)** — 24행 primary lever 매트릭스. 설계 문서, RFC, 온보딩 가이드에 그대로 가져다 쓰기.
 
-The pattern catalog was assembled by three parallel research scouts plus one static measurement pass:
+reference 문서들은 **도구와 분리해서도 의미 있도록** 의도적으로 설계됨 — 설계 리뷰, 페이퍼 인용, 새 멀티에이전트 하네스 팀 온보딩, 또는 신규 SKILL.md 작성 시 체크리스트로. [`taxonomy.md`](references/taxonomy.md)를 한 번 읽고 [task-to-model 매트릭스](references/task_to_model_matrix.md)를 북마크하는 것만 해도 이 repo는 본전.
 
-- **Scout A — Anthropic official.** 40 citations from `docs.anthropic.com`, engineering blog, API docs, Claude Code docs. Covers caching, model selection, context, agent SDK, subagents, hooks.
-- **Scout B — Community.** 32 citations from X, Reddit, HN, engineering blogs, GitHub. Quantitative where possible — token deltas, cost percentages, reproductions.
-- **Scout C — Academic and empirical.** 9 citations from arXiv (Zhang et al. 2026 on 409 agentic bugs), Augment Code, Martin Fowler, OpenAI's harness-engineering note, plus static measurement of one operator's 104-agent, 32-skill, 33-CLAUDE.md catalog.
-- **Adoption rule.** A pattern is registered only if **two or more independent external sources confirm it** (N>=2). User-baseline-only patterns are marked "hotspot, awaiting external corroboration" and kept separate.
+---
 
-Result: **10 categories, 31 sub-patterns** in `_workspace/03_patterns/taxonomy.md`. Of [`harness-diagnostic`](https://github.com/epoko77-ai/harness-diagnostic)'s 21 gaps, 4 met the bar and were adopted: **HD-003** (deterministic work routed through an LLM — the 91-minute trap), **HD-010** (report-first convention silently losing artifacts), **HD-011** (writer agent with no per-call output cap), and **HD-020** (uniform model tier across all roles). 4 were partially adopted, 11 were not adopted yet. This rule is the difference between "yet another LLM cost tool" and a catalog that stays honest as it grows.
+## 실측 사례 — paper-maker (16-agent 학술 페이퍼 하네스)
 
-## Headline 1 — Task-to-model matrix (excerpt)
+상세는 [`examples/case_studies/A_paper_maker_retrospective.md`](examples/case_studies/A_paper_maker_retrospective.md). 핵심:
 
-Full 24 rows in `references/task_to_model_matrix.md`. First 8:
+| | tokensave 미사용 | tokensave 적용 |
+|---|---------------------|---------------------|
+| 1회 실행 비용 추정 (480K input / 160K output) | $6.40 (Opus, 캐시 없음, 모두 LLM) | ~$1.80 (Sonnet + 90% 캐시 + 3 Python phase 분리) |
+| 최악 케이스 (`pm-citation-formatter`) | **91분 Opus 호출, 산출물 0** (HD-003 트랩, 실측) | ~30초 Python phase → **180× 단축** |
+| R3 판정 | FAIL (0/5 met) | PASS (5/5 met, well-formed) |
+| **누적** | — | **-72% 비용, 적용 시간 3시간** |
 
-| # | Task type | Recommended | Source | vs Opus |
-|---|-----------|-------------|--------|--------:|
-| 1 | Deterministic transform (regex, 1:1, BibTeX, format normalization) | **Python** | S-C07, S-C09 | free |
-| 2 | File search, grep, codebase exploration | **Haiku** | A013, S-B016 | -80% |
-| 3 | Pattern matching, rule-based classification (short input) | **Haiku** | A013, S-B017 | -80% |
-| 4 | Short structured summary (one paragraph) | **Haiku** | S-B031 | -80% |
-| 5 | Natural-language structured output (JSON, tables) | **Sonnet** | A001, S-B017 | -40% |
-| 6 | Standard code, debugging | **Sonnet** | A001, S-B016 | -40% |
-| 7 | Document drafting (up to 5,000 words) | **Sonnet** | A001, S-B018 | -40% |
-| 8 | Academic / policy paper (5K+ words, high-stake) | **Opus** | S-C09 | 0% justified |
+WARN tier 사례(PolicyBlind, 2시간 작업 → -56%, 연 $1,099 절감)는 [`examples/case_studies/B_policyblind_warn_to_pass.md`](examples/case_studies/B_policyblind_warn_to_pass.md).
 
-Core rule: deterministic → Python. Natural-language structured output or standard code → Sonnet. Only deep reasoning, high-stake creative writing, architectural decisions justify Opus.
+---
 
-## Headline 2 — model_selector.py
+## 정직한 한계
 
-Sample CLI output, verbatim from real scenarios:
+- **단일 운영자 baseline** — 본 README의 충격 수치(99% Opus 등)는 작성자 본인 27 하네스 카탈로그. taxonomy는 N≥2 외부 출처 채택 룰을 따르지만 baseline은 N=1. 다른 운영자 감사 결과 환영.
+- **Claude Code 한정** — `~/.claude/agents/` 레이아웃과 SKILL.md 컨벤션 기반 검출. LangChain, CrewAI, AutoGen은 어댑터 필요 (v1.1 로드맵).
+- **가격은 시점 데이터** — Anthropic 공식 per-MTok 가격(2026-05-14 기준). `scripts/estimate_cost.py`의 PRICING 상수 한 곳만 갱신하면 모든 스크립트에 반영.
+- **품질 저하 risk 미측정** — 매트릭스의 "Sonnet 다운그레이드 -40%"는 작업이 Sonnet으로 충분하다는 전제. 다운그레이드 후 재시도 발생 시 saved tokens ≠ saved cost. v1.2 measurement framework 로드맵. **이 점이 채택 시 가장 큰 risk** — 영어 README "Quality regression risk" 섹션 + [`references/quality_measurement.md`](references/quality_measurement.md) (계획) 참조.
+- **SKILL.md가 크지만 actionable.** SKILL.md ~18KB로 R4 size 임계 초과. 단 R4·R9는 비대 size가 아니라 actionable content 비율(phase 정의·결정 트리)을 검사 — 4 모드 = 4 phase 정의, 결정 트리 본문 포함이라 자기 audit PASS. 룰이 작성자 신원이 아니라 구조를 판정 — meta-skill 예외 적용 안 함.
 
-```
-$ python3 scripts/model_selector.py --task "extract tables from PDF and normalize to CSV"
-  Recommendation: Python (0 LLM calls)
-  Rationale:      deterministic keyword "PDF, CSV, normalize" (S-C07, S-B024)
-  Matrix row:     task_to_model_matrix.md #18
-  Estimated cost: $0. If sent to Opus instead, ~$0.72 for 12K input tokens.
+---
 
-$ python3 scripts/model_selector.py --task "weekly tech column, 5000 words" --tokens 8000 --quality high
-  Recommendation: Sonnet
-  Rationale:      natural-language structured output, drafting <=5K words (A001, S-B018)
-  Matrix row:     task_to_model_matrix.md #7
-  Estimated cost: Sonnet $0.114 (8K in + 6K out) · vs Opus $0.190 — 40% saved
+## 자매 저장소 — harness-diagnostic
 
-$ python3 scripts/model_selector.py --task "grep agent definitions for deterministic keywords" --tokens 200
-  Recommendation: Python (0 LLM calls)
-  Rationale:      grep, deterministic-keyword detection (S-C07)
-  Matrix row:     task_to_model_matrix.md #24
-```
+`tokensave`과 [`harness-diagnostic`](https://github.com/epoko77-ai/harness-diagnostic)은 같은 작성자가 만든 보완재:
 
-Decision tree encoded directly in Python. Zero LLM calls per query.
+| 도구 | 답하는 질문 | 산출물 |
+|------|------------|-------|
+| harness-diagnostic | "내 하네스에 구조적으로 무엇이 빠졌나?" | 21갭 × PASS/FAIL, 5층 모델 |
+| tokensave | "내 하네스가 어디서 토큰이 새고, 무엇을 어떻게 고치나?" | 31 sub-patterns × 비용 영향, 모델 결정 트리, 비용 추정기 |
 
-## The catalog as standalone reference
+함께 쓰는 워크플로: harness-diagnostic 먼저 구조적 갭 진단 → tokensave 비용 갭 감사. 4개 룰이 겹친다(HD-003 ↔ R2, HD-010 ↔ R7, HD-011 ↔ R8, HD-020 ↔ R1) — 두 도구 모두 FAIL이면 fix 우선순위 최상위.
 
-The audit script and the decision-tree CLI are deliberately thin shells over a more durable asset: **the pattern taxonomy itself**. You can use `tokensave` without running any code at all:
+상세: [`docs/hybrid_workflow.md`](docs/hybrid_workflow.md).
 
-- **[`references/taxonomy.md`](references/taxonomy.md)** — 10 categories × 31 sub-patterns. Each card includes trigger keywords, detection method, mitigation, expected savings range, and **two or more independent external citations** (Anthropic official + community + academic). 19 KB, designed to be read end-to-end in 30 minutes.
-- **[`references/taxonomy.json`](references/taxonomy.json)** — same content as machine-parsable JSON. Drop into your own dashboards, tool definitions, or downstream lints.
-- **[`references/task_to_model_matrix.md`](references/task_to_model_matrix.md)** — the 24-row primary lever, ready to drop into design docs, RFCs, onboarding guides.
-- **[`references/optimal_team_composition.md`](references/optimal_team_composition.md)** — 8 workload patterns × 5 cost-optimization patterns. Use it to design a new multi-agent harness, with or without the rest of this repo.
-- **[`references/anti_patterns_atlas.md`](references/anti_patterns_atlas.md)** — 31 sub-pattern quick-reference cards. One paragraph per pattern. The "skim-by-card" view.
+---
 
-The reference documents are explicitly designed to be useful **detached from the tooling** — for design review, paper citation, onboarding new hires onto a multi-agent harness team, or simply as a checklist when authoring a new SKILL.md. If the only thing you ever do is read [`taxonomy.md`](references/taxonomy.md) once and bookmark the [task-to-model matrix](references/task_to_model_matrix.md), this repo has paid for itself.
+## 로드맵
 
-## How to cite
+- **v1.1** — LangChain/LangGraph, CrewAI YAML, Python-class 하네스 어댑터. 외부 검증(2026-05-14)에서 R2/R3/R8 패턴이 외부 프레임워크에서도 실재함 확인.
+- **v1.2** — 품질 측정 도구 (`quality_delta.py`, golden-task harness, retry-cost calculator). `task_to_model_matrix.md`의 가장 중요한 간격 해소.
+- **v1.3** — `audit.py --json` hotspot 키 버그 fix. SKILL.md 추가 슬림화.
+- **v2.0** — 프레임워크 전체 커버리지, 커뮤니티 baseline 누적, case study converging 시 매트릭스 행 revision.
 
-If `tokensave`'s taxonomy or matrices inform your design, RFC, blog post, or paper, the citation below works:
+### v2.0 promotion 조건
 
-```
-Lee, Seung-hyun. "tokensave: Cost-optimization lint for multi-agent
-Claude Code harnesses." v1.0, 2026.
-https://github.com/epoko77-ai/tokensave
-```
+v1.0은 사용 가능한 첫 버전. v2.0(커뮤니티 검증)까지 3가지 게이트:
 
-For BibTeX:
-```bibtex
-@misc{plzsavetoken2026,
-  author = {Lee, Seung-hyun},
-  title  = {tokensave: Cost-optimization lint for multi-agent Claude Code harnesses},
-  year   = {2026},
-  version = {1.0},
-  url    = {https://github.com/epoko77-ai/tokensave}
-}
-```
+1. **N ≥ 3 외부 운영자 baseline** — [`baseline_submission` issue](https://github.com/epoko77-ai/tokensave/issues/new?template=baseline_submission.md)
+2. **≥ 1 measured 품질 저하 case study** — [quality regression issue](https://github.com/epoko77-ai/tokensave/issues/new?template=quality_regression_report.md)
+3. **≥ 1 프레임워크 어댑터 출시** (CrewAI YAML이 가장 단순한 첫 타깃)
 
-Catalog references can be cited individually with the sub-pattern ID (e.g., `C2.1 (HD-003 verbatim-mapping)`); each pattern carries its own external source IDs (`A###`, `S-B###`, `S-C##`, `HD-###`) for downstream traceability.
+**느린 길이 정직한 길.**
 
-## What audit.py catches (9 rules)
+---
 
-> **Core 5 vs Extended 4.** Pareto reality from one operator's baseline: R1, R2, R3, R5, R8 collectively explain ~80% of the cost impact. Fix those five and the bill drops dramatically; R4/R6/R7/R9 are still useful but second-order. The catalog is 31 sub-patterns across 10 categories so it stays honest as it grows, but for first-time audit triage start with the five marked ★.
+## 기여
 
-| Rule | Detection | Severity | Tier |
-|------|-----------|---------:|:-----|
-| ★ R1 (C1.1) | `model: opus` >= 80% across agents | S1 | **Core** |
-| ★ R2 (C2.x HD-003) | Deterministic keyword + no code-split phase | S1 | **Core** |
-| ★ R3 (C3) | 5+ agent team missing cost-optimization patterns (R3a role-tier mix / R3b cache_control / R3c parallel-or-serial declared / R3d wall-clock + cap / R3e file-based handoff). 3-tier: 5/5 met = PASS, 3-4/5 = WARN, 0-2/5 = FAIL. | S1 | **Core** |
-| R4 (C4.1) | CLAUDE.md > 200 lines / SKILL.md > 8K chars **without** matching actionable content (Phase/MODE definitions, decision tree references) | S1 | Extended |
-| ★ R5 (C5.1) | No `cache_control` or "prompt caching" mention | S1 | **Core** |
-| R6 (C7.1) | Repeated full-file reads (static heuristic) | S2 | Extended |
-| R7 (C8.1 HD-010) | No `.checkpoints/` or report-first convention | S1 | Extended |
-| ★ R8 (C9.1 HD-011) | Writer/drafter agent with no per-call output cap | S1 | **Core** |
-| R9 (C4.5) | SKILL.md > 5K chars with 0 phase / 0 tree markers | S2 | Extended |
+catalog는 inbound evidence로 자란다. 본인 하네스에 `audit.py` 돌려서:
 
-R6 and R7 are partial under static detection — pair with the NL diagnostic prompt or Hook-mode runtime instrumentation. Each finding ships with file:line evidence, suggested fix, source IDs, and decision (FAIL / WARN / PASS / N/A).
+- **분류학에 없는 새 패턴** (외부 출처 2개 이상 확보) — [pattern proposal issue](https://github.com/epoko77-ai/tokensave/issues/new?template=pattern_proposal.md)
+- **본인 하네스 baseline 제출** — N=1 → N=2 → N=3 진행
+- **품질 저하 measured 사례** — 가장 부족한 evidence
 
-## File tree
+PR 환영. `references/meta_self_check.md` 9-step 자가 점검 통과 후 제출 권고.
 
-```
-tokensave/
-├── README.md · LICENSE · SKILL.md        # SKILL.md = orchestrator skill, loaded by Claude Code
-├── scripts/
-│   ├── audit.py                          # MODE 3 — 9 static rules, JSON supported
-│   ├── model_selector.py                 # MODE 1 — decision tree, 0 LLM calls (HEADLINE)
-│   ├── estimate_cost.py                  # pricing SSOT, shared by both above
-│   └── hook_check.py                     # MODE 4 — runtime warning hook
-├── references/
-│   ├── taxonomy.md · taxonomy.json       # 10 cats × 31 sub-patterns, full evidence (CATALOG)
-│   ├── task_to_model_matrix.md           # 24-row matrix (HEADLINE #1 — PRIMARY LEVER)
-│   ├── optimal_team_composition.md       # multi-agent well-formed matrix (HEADLINE #3)
-│   ├── anti_patterns_atlas.md            # 31 sub-pattern quick-reference cards
-│   ├── python_vs_llm_tree.md · prompt_caching_checklist.md
-│   ├── parallel_patterns.md · hook_examples.md
-│   └── meta_self_check.md                # 9-step self-compliance checklist
-├── examples/
-│   ├── personal_baseline.md              # real-world 27-harness audit data (N=1 operator)
-│   ├── case_studies/                     # measured + simulated cost-vs-quality comparisons
-│   │   ├── A_paper_maker_retrospective.md   # FAIL → PASS, -72% cost (simulated)
-│   │   └── B_policyblind_warn_to_pass.md    # WARN → PASS, -56% cost, 2-hour fix (simulated)
-│   ├── contributed_baselines/            # community-submitted baselines (empty — be first)
-│   └── README.md                         # how to read / contribute your own baseline
-└── _workspace/                            # research notes, audit baseline (read-only, gitignored)
-```
+---
 
-## Companion: harness-diagnostic
+## 라이선스
 
-`tokensave` and [`harness-diagnostic`](https://github.com/epoko77-ai/harness-diagnostic) are by the same operator and are designed to be used together:
+MIT. 2026 Lee Seung-hyun (epoko77-ai).
 
-- `harness-diagnostic` answers **"what is structurally missing in my harness?"** — 21 gaps across five architectural layers, Python prototype detects 8 via regex.
-- `tokensave` answers **"where is my harness burning money and what do I do about it?"** — 31 sub-patterns, static audit, model decision tree, cost estimator, optimal team composition matrix, runtime hook.
+## 인사
 
-Hybrid workflow: run `harness-diagnostic` first for structural gaps, then `tokensave audit.py` for cost gaps. 4 of harness-diagnostic's 21 gaps overlap (HD-003, HD-010, HD-011, HD-020) — those are both reliability bugs and cost bugs.
+- [`harness-diagnostic`](https://github.com/epoko77-ai/harness-diagnostic) — 5층 모델과 HD-003/010/011/020 갭 정의.
+- Anthropic Claude Code docs, API docs, engineering blog — Scout A 40 인용의 원천.
+- Augment Code, Martin Fowler, OpenAI harness engineering — "deterministic vs inferential work" 경계가 HD-003을 codify.
+- Zhang et al. 2026 (arXiv:2604.08906) — 409 agentic bug 분석.
 
-## Limitations and caveats
-
-- **Single-operator baseline.** The headline numbers (99% Opus, 0/27 caching) come from one person's 27-harness catalog. The taxonomy is built on N>=2 external sources, but baseline calibration is N=1. Inbound diagnostics are invited.
-- **Claude Code specific.** Detection rules look for `model: opus` frontmatter, `~/.claude/agents/` layout, and SKILL.md conventions. LangChain, CrewAI, AutoGen need an adapter layer — planned for v1.1. **Cross-framework spot check (2026-05-14, not yet a validation claim):** `audit.py` was run against three external frameworks (Anthropic Cookbook, LangChain Academy, CrewAI examples). R5 (the trivial `cache_control` text-mention check) fired in all three. R2, R3, R8 patterns *appear* by manual inspection in those repos but the audit script cannot detect them without a framework adapter — so this is one auto-firing rule plus three anecdotal observations, not a validation of the catalog. Real validation comes from external operators running `audit.py` on their own setups (issue templates in `.github/`) and from v1.1 adapters that let the static rules fire across non-Claude-Code frameworks. The "external validation" wording in the previous version of this README overclaimed; this revision is honest about the scope.
-- **Pricing is point-in-time.** Cost estimates use Anthropic per-MTok prices as of 2026-05-14, encoded as a single constant in `scripts/estimate_cost.py`. Update one constant when prices change; every downstream script picks it up.
-- **R6 and R7 are partial under static detection.** Repeated-read patterns and report-first convention violations are detectable with higher fidelity at runtime. The Hook mode covers some of this; a fully instrumented runtime collector is future work.
-- **Korean reference content alongside English.** The project began bilingual; internal research notes remain in Korean. All user-facing artifacts (README, SKILL.md, references/) are English.
-- **The skill's own SKILL.md is large but actionable.** `SKILL.md` is ~18 KB — above the R4 size threshold. However, R4 and R9 check for the *ratio* of actionable content (phase definitions, decision trees) to bulk, not size alone. The four modes are four phase definitions and the body has the decision tree inline, so the rules judge the skill PASS on its own audit. The rules judge the structure, not the author's identity — no meta-skill exception is applied.
-
-## Quality regression risk (the most important caveat)
-
-The `task_to_model_matrix.md` 24 rows are recommendations, not guarantees. The matrix says "Sonnet is fine for standard prose drafting" — but **saved tokens are not the same as saved cost** if downgrading triggers quality regression that forces retries, fact-checker re-runs, or human rework. A downgrade that looks like -80% can land at +20% net cost once retry loops are counted.
-
-This boundary is currently underspecified in the catalog. Before any production downgrade, apply this discipline:
-
-1. **Keep a golden task set.** Five to ten representative tasks for the agent in question. Measure pass-rate, retry rate, and (where applicable) human acceptance on both the original and the downgraded model.
-2. **Escalate on failure.** If the downgraded run fails a golden task or triggers a retry, route the work back to the original tier. Single-direction downgrades without escalation are how saved tokens become net losses.
-3. **Trust the matrix least at the boundaries.** Rows marked Sonnet that touch high-stakes reasoning, novel domains, or formal register (legal, academic, regulated) are the most likely to surprise. Treat the matrix as a prior, not a verdict.
-4. **Report what you measured.** Even N=1 case studies modify the matrix — see [`examples/case_studies/INDEX.md`](examples/case_studies/INDEX.md) and the [quality regression issue template](.github/ISSUE_TEMPLATE/quality_regression_report.md). Three converging reports on the same workload pattern → matrix row revised. One counter-example → asterisk + caveat added.
-
-A measurement framework (`quality_delta` scoring tool, golden task harness, retry-cost calculator) is on the v1.2 roadmap. Until then, the matrix is honest about its limits and the burden of evaluation sits with the operator. **This is the single biggest unresolved risk in adopting `tokensave` recommendations.**
-
-## Roadmap
-
-- **v1.1** — framework adapters for LangChain/LangGraph StateGraph, CrewAI YAML, and Python-class harnesses. Cross-framework spot check (2026-05-14) suggests R2, R3, R8 patterns appear in external frameworks; adapters will let the static rules actually verify this (today's check is a single auto-firing rule plus manual inspection — not a validation claim). Broader inbound harness diagnostics; N>=2 confirmation promotes hotspots to registered rules.
-- **v1.2** — quality measurement: `quality_delta` scoring tool, golden-task harness, retry-cost calculator. Closes the most important gap in `task_to_model_matrix.md`. Also: `model_selector.py` tree fix for `grep`/`count` keywords.
-- **v1.3** — `audit.py --json` hotspot key bug fix (top-10 hotspots render in text but not yet JSON). SKILL.md additional slimming with headline matrices fully delegated to `references/`.
-- **v2.0** — full cross-framework coverage; community-contributed baselines aggregated; matrix rows revised by converging case studies.
-
-### v2.0 promotion criteria — community-validated catalog
-
-v1.0 ships as a usable first-cut release. The path to v2.0 — where the catalog earns the claim to generalization — has three concrete gates:
-
-1. **N ≥ 3 external operator baselines** accepted via the [baseline issue template](.github/ISSUE_TEMPLATE/baseline_submission.md). The first one moves the project from "one operator's catalog" to a catalog.
-2. **≥ 1 quality regression case study** with measured cost-vs-quality delta on a real workload. The first one converts the matrix from "advisory" to "evidence-anchored."
-3. **≥ 1 framework adapter shipped** (CrewAI YAML is the simplest first target).
-
-Without these, the catalog stays useful but proprietary in shape. With them, it becomes a community-validated cost-optimization standard. The slow path is the honest one.
-
-## Contributing
-
-The catalog grows by inbound evidence. If you ran `audit.py` on your harness and found:
-
-- A **new pattern** not in the taxonomy, with two or more independent corroborating sources — open an issue with symptom, file evidence, and sources.
-- A **rule that misfired** on your harness — open an issue describing your harness shape and what was missed or mis-flagged.
-- A **cost outcome** from applying a remediation ("downgrading 14 agents from Opus to Sonnet saved $X per run") — those numbers harden the cost column.
-- A **hotspot** not in the taxonomy — even N=1 entries are logged as "hotspot, awaiting external corroboration."
-
-Catalog evolution is the entire point. The N>=2 rule is the gate, not a wall.
-
-## License
-
-MIT. See [LICENSE](./LICENSE).
-
-## Acknowledgements
-
-- [`harness-diagnostic`](https://github.com/epoko77-ai/harness-diagnostic) for the five-layer model and the HD-003 / HD-010 / HD-011 / HD-020 gap definitions.
-- Anthropic's docs, engineering blog, and Claude Code docs for 40 cited references including the 7x multi-agent measurement and the cache-read-equals-10-percent pricing.
-- Zhang et al. (arXiv 2604.08906) on 409 agentic bugs — the academic spine of the five-layer model.
-- Augment Code, Martin Fowler, OpenAI for the "deterministic versus inferential work" boundary that HD-003 codifies.
-- Standard library only. No third-party Python dependencies.
+영어 README와 더 상세한 인용: [README.md](README.md).
