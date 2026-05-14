@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-plz-save-token — model_selector.py  ★ HEADLINE
+tokensave — model_selector.py  ★ HEADLINE
 
 자연어 작업 설명을 받아 추천 모델(Python/Haiku/Sonnet/Opus) + 근거 + 예상 비용을
 출력하는 완전 결정적 CLI. LLM 호출 0회.
@@ -302,7 +302,7 @@ def recommend(task: str, tokens: Optional[int] = None, quality: str = "medium") 
 
 def render_md(r: Recommendation) -> str:
     lines = []
-    lines.append(f"# plz-save-token model_selector 결과")
+    lines.append(f"# tokensave model_selector 결과")
     lines.append("")
     lines.append(f"**작업:** {r.task}")
     lines.append(f"**quality 입력:** {r.quality_input}")
@@ -346,7 +346,7 @@ def render_md(r: Recommendation) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="plz-save-token model_selector — 자연어 작업 → 모델 추천 (결정적, LLM 0회)"
+        description="tokensave model_selector — 자연어 작업 → 모델 추천 (결정적, LLM 0회)"
     )
     ap.add_argument("--task", required=True, help="작업 설명 (자연어)")
     ap.add_argument("--tokens", type=int, help="입력 토큰 추정치 (미제공 시 default)")

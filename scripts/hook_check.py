@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-plz-save-token — hook_check.py
+tokensave — hook_check.py
 
 settings.json hook으로 등록 가능한 런타임 가드.
 PreToolUse (Agent 호출 직전 모델 적정성 경고) + UserPromptSubmit (LLM-overuse
@@ -18,10 +18,10 @@ settings.json 예제:
   "hooks": {
     "PreToolUse": [{"matcher": "Task",
       "hooks": [{"type": "command",
-        "command": "python3 /path/to/plz-save-token/scripts/hook_check.py pretooluse"}]}],
+        "command": "python3 /path/to/tokensave/scripts/hook_check.py pretooluse"}]}],
     "UserPromptSubmit": [{
       "hooks": [{"type": "command",
-        "command": "python3 /path/to/plz-save-token/scripts/hook_check.py userprompt"}]}]
+        "command": "python3 /path/to/tokensave/scripts/hook_check.py userprompt"}]}]
   }
 }
 
@@ -71,7 +71,7 @@ def check_pretooluse(payload: dict) -> list[str]:
         for pattern, reason, matrix_ref in DETERMINISTIC_KEYWORDS:
             if re.search(pattern, desc, re.IGNORECASE):
                 warnings.append(
-                    f"[plz-save-token PRE-FLIGHT] 결정적 keyword 감지: '{reason}' (matrix {matrix_ref}). "
+                    f"[tokensave PRE-FLIGHT] 결정적 keyword 감지: '{reason}' (matrix {matrix_ref}). "
                     f"Python 분기 검토. 확신하면 진행."
                 )
                 break
@@ -81,7 +81,7 @@ def check_pretooluse(payload: dict) -> list[str]:
     if "opus" in text_lower and any(kw in text_lower for kw in
                                      ["grep", "탐색", "카운트", "boilerplate", "read-only", "짧은"]):
         warnings.append(
-            "[plz-save-token PRE-FLIGHT] opus + 탐색/짧은 작업 — Haiku 가능 [task_to_model_matrix #2·22]"
+            "[tokensave PRE-FLIGHT] opus + 탐색/짧은 작업 — Haiku 가능 [task_to_model_matrix #2·22]"
         )
 
     # 3. 5+ agent fan-out 검출 (description에 다중 spawn 의도)
@@ -92,7 +92,7 @@ def check_pretooluse(payload: dict) -> list[str]:
                 n = int(n_str)
                 if n >= 5:
                     warnings.append(
-                        f"[plz-save-token PRE-FLIGHT] {n}+ agent fan-out — "
+                        f"[tokensave PRE-FLIGHT] {n}+ agent fan-out — "
                         "단일 세션 가능성 점검? [A003 7× cost]"
                     )
                     break
@@ -105,12 +105,12 @@ def check_pretooluse(payload: dict) -> list[str]:
             r = recommend(desc[:500])  # 너무 길면 자름
             if r.recommended_model == "python":
                 warnings.append(
-                    f"[plz-save-token model_selector] 이 작업은 Python으로 처리 가능 "
+                    f"[tokensave model_selector] 이 작업은 Python으로 처리 가능 "
                     f"(matrix {r.matrix_row}, {r.rationale}). 절감 -100% (LLM 0회)."
                 )
             elif r.recommended_model in ("haiku", "sonnet") and "opus" in str(subagent_type).lower():
                 warnings.append(
-                    f"[plz-save-token model_selector] 추천 {r.recommended_model}, "
+                    f"[tokensave model_selector] 추천 {r.recommended_model}, "
                     f"vs Opus 절감 {r.cost_vs_opus_pct:+.1f}% (matrix {r.matrix_row})"
                 )
         except Exception:
@@ -154,14 +154,14 @@ def check_userprompt(payload: dict) -> list[str]:
 
     for pattern, msg in OVERUSE_KEYWORDS_PATTERNS:
         if re.search(pattern, prompt, re.IGNORECASE):
-            warnings.append(f"[plz-save-token OVERUSE] {msg}")
+            warnings.append(f"[tokensave OVERUSE] {msg}")
 
     # 결정적 작업 keyword 탐지
     if HAS_MODEL_SELECTOR:
         for pattern, reason, matrix_ref in DETERMINISTIC_KEYWORDS:
             if re.search(pattern, prompt, re.IGNORECASE):
                 warnings.append(
-                    f"[plz-save-token OVERUSE] '{reason}' — Python 분기 권고 "
+                    f"[tokensave OVERUSE] '{reason}' — Python 분기 권고 "
                     f"(matrix {matrix_ref})"
                 )
                 break
@@ -169,7 +169,7 @@ def check_userprompt(payload: dict) -> list[str]:
     # 컨텍스트 비대 신호
     if len(prompt) > 30000:
         warnings.append(
-            f"[plz-save-token OVERUSE] 사용자 입력 {len(prompt):,}자 — "
+            f"[tokensave OVERUSE] 사용자 입력 {len(prompt):,}자 — "
             "컨텍스트 폭주 위험. 파일 분리 + Read tool 사용 권고 [C4.4]"
         )
 
@@ -207,7 +207,7 @@ def self_test() -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="plz-save-token hook_check — PreToolUse / UserPromptSubmit guard. "
+        description="tokensave hook_check — PreToolUse / UserPromptSubmit guard. "
                     "Reads payload from stdin, emits warnings to stderr, exit 0."
     )
     ap.add_argument("mode", choices=["pretooluse", "userprompt", "self-test"])

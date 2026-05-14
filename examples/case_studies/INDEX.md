@@ -23,7 +23,7 @@ Measured ROI cases — model downgrades, Python phase splits, prompt caching app
 | [Case A](A_paper_maker_retrospective.md) | paper-maker (16-agent academic) | Retrospective + simulated | -72% cost, -180× on worst agent (HD-003 trap caught at design time) | 2026-05-14 |
 | [Case B](B_policyblind_warn_to_pass.md) | PolicyBlind (9-agent civic policy) | Simulated WARN → PASS demo | -56% cost, ~2-hour fix effort, $1,099/year saved at 50 runs/month | 2026-05-14 |
 
-Both cases are **simulated using `estimate_cost.py` projections, not real before/after measurements**. They demonstrate the decision discipline plz-save-token introduces. Real measured case studies are the next step — see each case's "Recommendation for next action" section.
+Both cases are **simulated using `estimate_cost.py` projections, not real before/after measurements**. They demonstrate the decision discipline tokensave introduces. Real measured case studies are the next step — see each case's "Recommendation for next action" section.
 
 ## How a case study modifies the matrix
 

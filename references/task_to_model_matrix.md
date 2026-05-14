@@ -2,7 +2,7 @@
 
 생성: 2026-05-14 · 출처: `taxonomy.md §3` (token-pattern-taxonomist v1) + Scout A·B·C 인용 + 사용자 baseline 교차검증
 
-> **이 매트릭스가 plz-save-token의 primary lever다.** 절감의 ~70-80%는 이 24행에서 올바른 행을 고르는 데서 나온다. `references/optimal_team_composition.md`의 5 team-composition 패턴은 그 위에 ~30% multiplier로 얹히는 secondary optimization — 이 매트릭스 row를 틀리면 team patterns 모두 "fractions of nothing"이 된다. **tier 먼저, team 다음.**
+> **이 매트릭스가 tokensave의 primary lever다.** 절감의 ~70-80%는 이 24행에서 올바른 행을 고르는 데서 나온다. `references/optimal_team_composition.md`의 5 team-composition 패턴은 그 위에 ~30% multiplier로 얹히는 secondary optimization — 이 매트릭스 row를 틀리면 team patterns 모두 "fractions of nothing"이 된다. **tier 먼저, team 다음.**
 
 본 매트릭스는 `model_selector.py`의 결정 트리가 직접 인코딩하는 24행이다. CLI가 자동으로 매칭하므로 사용자는 매번 본 문서를 통독할 필요 없다. 다만 모델 분기 근거가 의심스러울 때, 새 패턴을 추가할 때, 학습 목적일 때 이 매트릭스를 참조한다.
 

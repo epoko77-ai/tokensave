@@ -3,14 +3,14 @@
 **Status:** Retrospective + simulated comparison
 **Date:** 2026-05-14
 **Audit target:** `/Users/epoko77_m5/paper-maker` (16 agents, 100% Opus)
-**Tool version:** plz-save-token v1.0
+**Tool version:** tokensave v1.0
 **Operator:** one (catalog top hotspot #1)
 
 ---
 
 ## TL;DR
 
-| | Without plz-save-token | With plz-save-token |
+| | Without tokensave | With tokensave |
 |---|---|---|
 | Decision discipline | "Opus is safe default — paper quality is high-stake" | `model_selector.py` per-agent + R3 sub-rule check |
 | Cost per pipeline run (480K in / 160K out estimate) | **$6.40 (Opus, no cache, all-LLM)** | **~$1.80 (Sonnet + cache 90% + 3 Python phase splits)** |
@@ -18,7 +18,7 @@
 | Worst-case agent failure | `pm-citation-formatter` 91-minute Opus loop, no artifact (HD-003 trap, real history) | Same agent caught by R2 audit at design time → Python phase split → 30 seconds |
 | Retrospective net | — | **-72% cost, -180× wall-clock on the worst agent** |
 
-This is a **retrospective**: paper-maker v1.0 (2026-05-13) actually fell into the 91-minute trap. v1.2 fixed it by splitting `pm-citation-formatter` into Python + short LLM review. **plz-save-token would have caught it at design time via R2 (HD-003)** — that's the evidence claim being tested here.
+This is a **retrospective**: paper-maker v1.0 (2026-05-13) actually fell into the 91-minute trap. v1.2 fixed it by splitting `pm-citation-formatter` into Python + short LLM review. **tokensave would have caught it at design time via R2 (HD-003)** — that's the evidence claim being tested here.
 
 ---
 
@@ -56,7 +56,7 @@ R2 (C2.x HD-003) — Deterministic Work in LLM: FAIL
 
 ---
 
-## Without plz-save-token (default workflow)
+## Without tokensave (default workflow)
 
 The historical record. paper-maker v1.0 was designed with the implicit assumption "Opus everywhere, the paper is high-stake." This produced:
 
@@ -71,9 +71,9 @@ Net result before v1.2 fix: pipeline failure on the most expensive trap pattern 
 
 ---
 
-## With plz-save-token (counterfactual design-time application)
+## With tokensave (counterfactual design-time application)
 
-If `plz-save-token` had existed when paper-maker was being designed:
+If `tokensave` had existed when paper-maker was being designed:
 
 ### Step 1 — Pre-flight (model_selector.py per agent)
 
@@ -123,7 +123,7 @@ Add Python phase splits for 3 deterministic agents (saves their LLM cost entirel
 
 ## Quantified comparison
 
-| Metric | Without plz-save-token | With plz-save-token (full Quick-wins) | Delta |
+| Metric | Without tokensave | With tokensave (full Quick-wins) | Delta |
 |---|---|---|---|
 | Cost per run | $6.40 | ~$1.80 | **-72%** |
 | `pm-citation-formatter` wall-clock | 91 minutes (no artifact) | ~30 seconds (Python phase) | **-180×** |
@@ -135,7 +135,7 @@ Add Python phase splits for 3 deterministic agents (saves their LLM cost entirel
 
 ## Caveats and limits
 
-- **Retrospective, not prospective.** The 91-minute trap is real, but the "plz-save-token would have caught it" claim is counterfactual reasoning, not measured.
+- **Retrospective, not prospective.** The 91-minute trap is real, but the "tokensave would have caught it" claim is counterfactual reasoning, not measured.
 - **Cost estimates assume 480K/160K tokens.** Actual paper-maker run varies by paper length and venue.
 - **-72% net cost is upper-bound** — assumes full Quick-wins applied. Partial application yields 30-50%.
 - **Quality regression risk not measured.** Sonnet downgrade for 8 workers needs golden-task validation. v1.2 measurement tools pending.

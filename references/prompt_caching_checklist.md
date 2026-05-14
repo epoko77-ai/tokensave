@@ -111,7 +111,7 @@ R5 룰: `cache_control` / `prompt caching` / `캐싱` 키워드 검색 → 27/27
 
 ## 메타 원칙 셀프 체크 (Skill builder 자신)
 
-본 plz-save-token 스킬 자체도 캐싱 적용:
+본 tokensave 스킬 자체도 캐싱 적용:
 
 - [ ] SKILL.md (현재 ~13K chars) → 호출 시 cache_control 적용?
 - [ ] task_to_model_matrix.md (~6K chars) → reference로 함께 캐싱?

@@ -6,7 +6,7 @@ Anonymized or attributed baselines submitted by community operators via the [bas
 
 ## Submitted
 
-(empty — be the first via [Issues → Baseline submission](https://github.com/epoko77-ai/plz-save-token/issues/new?template=baseline_submission.md))
+(empty — be the first via [Issues → Baseline submission](https://github.com/epoko77-ai/tokensave/issues/new?template=baseline_submission.md))
 
 ## Aggregated view (auto-generated when N≥3)
 

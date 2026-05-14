@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-plz-save-token — audit.py
+tokensave — audit.py
 
 기존 하네스 정적 감사. baseline_collect.py (사용자 베이스라인 수집) +
 harness-diagnostic/cli/diagnose.py (HD-003/010/011 룰) 통합 확장.
@@ -76,7 +76,7 @@ def load_taxonomy() -> dict:
     candidates = [
         Path(__file__).parent.parent / "_workspace" / "03_patterns" / "taxonomy.json",
         Path(__file__).parent.parent / "03_patterns" / "taxonomy.json",
-        Path.home() / "plz-save-token" / "_workspace" / "03_patterns" / "taxonomy.json",
+        Path.home() / "tokensave" / "_workspace" / "03_patterns" / "taxonomy.json",
     ]
     for c in candidates:
         if c.is_file():
@@ -311,7 +311,7 @@ def discover_paths(root: Optional[Path]) -> dict:
     """root가 None이면 전수 모드 (HOME/.claude/* + HOME/CLAUDE.md). 아니면 단일 하네스.
 
     HOME defaults to Path.home(). Override by passing an explicit root path.
-    Set PLZ_SAVE_TOKEN_HARNESS_PREFIX_MAP (JSON) to customize single-harness agent lookup.
+    Set TOKENSAVE_HARNESS_PREFIX_MAP (JSON) to customize single-harness agent lookup.
     """
     if root is None:
         # 전수 모드
@@ -338,8 +338,8 @@ def discover_paths(root: Optional[Path]) -> dict:
         agent_paths.extend(sorted(p_alt.glob("*.md")))
     # ~/.claude/agents 에서 hint prefix로 일부
     # Harness-name → agent-prefix mapping.
-    # Customize via PLZ_SAVE_TOKEN_HARNESS_PREFIX_MAP env var (JSON object) or edit in place.
-    # Example: export PLZ_SAVE_TOKEN_HARNESS_PREFIX_MAP='{"my-harness":["mh-"]}'
+    # Customize via TOKENSAVE_HARNESS_PREFIX_MAP env var (JSON object) or edit in place.
+    # Example: export TOKENSAVE_HARNESS_PREFIX_MAP='{"my-harness":["mh-"]}'
     # A full example mapping from a real 27-harness catalog is in
     #   examples/personal_baseline.md §harness-mapping
     import os as _os, json as _json
@@ -349,7 +349,7 @@ def discover_paths(root: Optional[Path]) -> dict:
         "another-harness": ["ah-"],
     }
     try:
-        _env_map = _os.environ.get("PLZ_SAVE_TOKEN_HARNESS_PREFIX_MAP", "")
+        _env_map = _os.environ.get("TOKENSAVE_HARNESS_PREFIX_MAP", "")
         HARNESS_PREFIX_MAP: dict[str, list[str]] = (
             _json.loads(_env_map) if _env_map.strip() else _DEFAULT_PREFIX_MAP
         )
@@ -1015,7 +1015,7 @@ def run_audit(root: Optional[Path], rules: list[str]) -> AuditReport:
 
 def render_md(report: AuditReport, show_top: int = 10) -> str:
     lines = []
-    lines.append("# plz-save-token Audit Report")
+    lines.append("# tokensave Audit Report")
     lines.append("")
     lines.append(f"**Scope:** `{report.scope}`")
     lines.append("")
@@ -1082,7 +1082,7 @@ def render_md(report: AuditReport, show_top: int = 10) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="plz-save-token audit — 정적 9 룰 기반 하네스 감사."
+        description="tokensave audit — 정적 9 룰 기반 하네스 감사."
     )
     ap.add_argument("root", nargs="?",
                     help="하네스 root 경로 (생략 시 전수 모드 ~/.claude + ~/CLAUDE.md)")

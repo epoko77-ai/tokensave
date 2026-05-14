@@ -1,4 +1,4 @@
-# plz-save-token Pattern Taxonomy v1
+# tokensave Pattern Taxonomy v1
 
 생성: 2026-05-14 · 작성: token-pattern-taxonomist (opus)
 출처: Anthropic 공식(Scout A·40 인용) + 커뮤니티 글로벌·한국(Scout B·32 소스) + 학술·실증(Scout C·9 소스) + 사용자 홈 카탈로그 실측(baseline.md)

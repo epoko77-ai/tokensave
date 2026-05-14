@@ -2,7 +2,7 @@
 
 > **Pareto position.** This matrix is the **secondary** lever (~30% multiplier on top of well-matched model tiers). The **primary** lever is `references/task_to_model_matrix.md` — get the tier right first (~70-80% of savings), then apply these five team-composition patterns. Optimizing the team while the base tier is wrong is fractions of nothing.
 >
-> **plz-save-token does not discourage multi-agent harnesses.** Multi-agent is justified — when 5 cost-optimization patterns are applied. This matrix is the prescription. `audit.py` rule R3 sub-rules (R3a~R3e) map 1:1 to the 5 patterns; `SKILL.md` MODE 1 Step 3 is the pre-flight self-check.
+> **tokensave does not discourage multi-agent harnesses.** Multi-agent is justified — when 5 cost-optimization patterns are applied. This matrix is the prescription. `audit.py` rule R3 sub-rules (R3a~R3e) map 1:1 to the 5 patterns; `SKILL.md` MODE 1 Step 3 is the pre-flight self-check.
 >
 > Generated: 2026-05-14 · scope: Claude Code 5+ agent harnesses · companion: `references/anti_patterns_atlas.md` C3 cards (1:1 mapping)
 
@@ -166,4 +166,4 @@ Full source citations → `_workspace/03_patterns/taxonomy.json` `sources_extern
 
 ## 9. Version
 
-- **v1.0** (2026-05-14) — initial publication; companion to plz-save-token v1.0 release C3 reframe. Operator-grounded examples drawn from one 28-harness catalog (paper-maker, ainews-daily, policyblind, book-infographic-deck, policy-speech, busan-bukgu-research, uap-161-analysis, WikiBrain v1.0).
+- **v1.0** (2026-05-14) — initial publication; companion to tokensave v1.0 release C3 reframe. Operator-grounded examples drawn from one 28-harness catalog (paper-maker, ainews-daily, policyblind, book-infographic-deck, policy-speech, busan-bukgu-research, uap-161-analysis, WikiBrain v1.0).

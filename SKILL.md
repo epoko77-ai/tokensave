@@ -1,11 +1,11 @@
 ---
-name: plz-save-token
-description: Claude Code 하네스의 토큰 낭비를 사전·사후 점검·재작성 가이드로 차단하는 메타 스킬. 모델 티어 오배분(Opus 99%)·결정적 작업의 LLM 위임(HD-003 트랩)·멀티에이전트 팀 구성 미최적화(role-tier mix·common cache·parallel/serial 선언·wall-clock cap·file-based handoff 5 missing-patterns)·프롬프트 캐싱 0회·SKILL.md 비대화 등 10대 카테고리·31 서브패턴을 카탈로그하고, 4가지 모드(PRE-FLIGHT 사전 점검·AUTHORING 신규 스킬/에이전트 설계·AUDIT 기존 하네스 감사·HOOK 런타임 자동 가드) + 3 headline matrix(task→model · model_selector CLI · optimal team composition)로 활용한다. 멀티에이전트 자체는 정당, 단 비용 최적화된 멀티에이전트를 빌드하는 가드. 트리거 — "토큰 절감", "plz-save-token", "이 작업 모델 뭐가 적절해", "이거 LLM 안 쓰고 파이썬으로 되나", "내 하네스 감사해줘", "오퍼스 남용 점검", "프롬프트 캐싱 어떻게", "에이전트 병렬 vs 순차", "스킬 만들 때 토큰 절약", "모델 선택", "Sonnet vs Opus", "Haiku로 충분", "결정적 작업 분리", "비용 추정", "5+ 팀 정당화", "멀티에이전트 비용 최적화", "감사 다시", "캐싱 도입", "context bloat", "SKILL.md 너무 크다". 후속 작업 — "패턴 추가", "감사 재실행", "모델 재추천", "비용 비교", "팀 구성 검토" 도 동일 스킬.
+name: tokensave
+description: Claude Code 하네스의 토큰 낭비를 사전·사후 점검·재작성 가이드로 차단하는 메타 스킬. 모델 티어 오배분(Opus 99%)·결정적 작업의 LLM 위임(HD-003 트랩)·멀티에이전트 팀 구성 미최적화(role-tier mix·common cache·parallel/serial 선언·wall-clock cap·file-based handoff 5 missing-patterns)·프롬프트 캐싱 0회·SKILL.md 비대화 등 10대 카테고리·31 서브패턴을 카탈로그하고, 4가지 모드(PRE-FLIGHT 사전 점검·AUTHORING 신규 스킬/에이전트 설계·AUDIT 기존 하네스 감사·HOOK 런타임 자동 가드) + 3 headline matrix(task→model · model_selector CLI · optimal team composition)로 활용한다. 멀티에이전트 자체는 정당, 단 비용 최적화된 멀티에이전트를 빌드하는 가드. 트리거 — "토큰 절감", "tokensave", "이 작업 모델 뭐가 적절해", "이거 LLM 안 쓰고 파이썬으로 되나", "내 하네스 감사해줘", "오퍼스 남용 점검", "프롬프트 캐싱 어떻게", "에이전트 병렬 vs 순차", "스킬 만들 때 토큰 절약", "모델 선택", "Sonnet vs Opus", "Haiku로 충분", "결정적 작업 분리", "비용 추정", "5+ 팀 정당화", "멀티에이전트 비용 최적화", "감사 다시", "캐싱 도입", "context bloat", "SKILL.md 너무 크다". 후속 작업 — "패턴 추가", "감사 재실행", "모델 재추천", "비용 비교", "팀 구성 검토" 도 동일 스킬.
 version: 1.0
 meta_skill: true
 ---
 
-# plz-save-token — Claude Code 토큰 낭비 사전·사후 차단 메타 스킬
+# tokensave — Claude Code 토큰 낭비 사전·사후 차단 메타 스킬
 
 > **메타 스킬 예외 선언.** 본 스킬은 4모드 + 3 headline matrix + 분류학 카탈로그를 한 번에 활성화해야 즉시 가치가 나오는 메타 카테고리다. 따라서 자기 자신의 R4(컨텍스트 비대)·R9(SKILL.md 비실행 비대) 룰은 예외 적용 — `audit.py`가 `meta_skill: true` frontmatter 인식 시 R4·R9 WARN 자동 제외. 다만 발동 ROI는 명시: 1회 발동 ≈ 10K input(≈ $0.15 Opus) vs 하네스 1개 비용 최적화 적용 -60~75% (수십\$ 절감) = 수백배 ROI. 매 세션 자동 부담은 frontmatter description ~200자만, 본문은 사용자 명시 발동 시에만 주입.
 
@@ -13,7 +13,7 @@ meta_skill: true
 
 **아래 조건 중 하나라도 해당하면 이 스킬이 즉시 활성화된다. 우회·연기 금지.**
 
-1. 사용자가 "토큰 절감 / plz-save-token / 모델 선택 / 캐싱 / 하네스 감사 / 오퍼스 남용" 키워드 중 하나를 입력한다.
+1. 사용자가 "토큰 절감 / tokensave / 모델 선택 / 캐싱 / 하네스 감사 / 오퍼스 남용" 키워드 중 하나를 입력한다.
 2. 사용자가 **신규 스킬·에이전트·하네스 설계를 시작**한다. 트리거: "스킬 만들어줘", "에이전트 추가", "하네스 구성", "팀 구성", "5인 팀" 등.
 3. 사용자가 **에이전트를 spawn하기 직전**(Task tool 호출 직전) — `MODE 1 PRE-FLIGHT` 자동 실행.
 4. 사용자가 **결정적으로 표현 가능한 작업**(verbatim·1:1 매핑·BibTeX·regex·CSV·JSON 정규화·dead link·해시·grep·카운트)을 LLM에 시키려 한다 — `Python 권고 게이트` 발동.
@@ -38,7 +38,7 @@ meta_skill: true
 > audited on 2026-05-14. Run `python3 scripts/audit.py` against your own catalog to get your numbers.
 > Full data → `examples/personal_baseline.md`.
 
-`<your-plz-save-token-dir>/_workspace/02_audit/baseline.md` — static measurement from one operator's catalog (2026-05-14).
+`<your-tokensave-dir>/_workspace/02_audit/baseline.md` — static measurement from one operator's catalog (2026-05-14).
 See `examples/personal_baseline.md` for the full data.
 
 | # | 사실 | 출처 |

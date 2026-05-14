@@ -1,19 +1,19 @@
-# plz-save-token
+# tokensave
 
-[![Version](https://img.shields.io/badge/version-1.0-blue)](https://github.com/epoko77-ai/plz-save-token/releases/tag/v1.0)
+[![Version](https://img.shields.io/badge/version-1.0-blue)](https://github.com/epoko77-ai/tokensave/releases/tag/v1.0)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Dependencies](https://img.shields.io/badge/deps-stdlib_only-green.svg)](#)
 [![Companion](https://img.shields.io/badge/companion-harness--diagnostic-purple)](https://github.com/epoko77-ai/harness-diagnostic)
-[![GitHub stars](https://img.shields.io/github/stars/epoko77-ai/plz-save-token?style=social)](https://github.com/epoko77-ai/plz-save-token/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/epoko77-ai/tokensave?style=social)](https://github.com/epoko77-ai/tokensave/stargazers)
 
 > **Cost-optimization lint for multi-agent Claude Code harnesses.**
 > Helps you build well-formed multi-agent teams. Catches misallocated team compositions and burning cost patterns — not the multi-agent design itself.
 > Companion to [harness-diagnostic](https://github.com/epoko77-ai/harness-diagnostic): one diagnoses, the other reduces.
 
-**TL;DR.** I audited my own 27-harness Claude Code setup: 99% of agents on Opus, 0 of 27 harnesses using prompt caching, 20 agents routing regex through an LLM, 93% spinning up 5+ agent teams. The teams are mostly fine — paper-maker, ainews-daily, policyblind are well-formed hierarchical/pipeline harnesses. The problem is paying the 7×~15× multiplier without applying the five cost-optimization patterns that make multi-agent worth it. `plz-save-token` is the catalog, audit script, decision tree, and optimal team composition matrix I built to make multi-agent harnesses well-formed instead of just expensive. Standard library only. Run `python3 scripts/audit.py` on your `~/.claude` to see your numbers in under five seconds.
+**TL;DR.** I audited my own 27-harness Claude Code setup: 99% of agents on Opus, 0 of 27 harnesses using prompt caching, 20 agents routing regex through an LLM, 93% spinning up 5+ agent teams. The teams are mostly fine — paper-maker, ainews-daily, policyblind are well-formed hierarchical/pipeline harnesses. The problem is paying the 7×~15× multiplier without applying the five cost-optimization patterns that make multi-agent worth it. `tokensave` is the catalog, audit script, decision tree, and optimal team composition matrix I built to make multi-agent harnesses well-formed instead of just expensive. Standard library only. Run `python3 scripts/audit.py` on your `~/.claude` to see your numbers in under five seconds.
 
-> ### The 80/20 rule (the heart of plz-save-token)
+> ### The 80/20 rule (the heart of tokensave)
 > **Match task complexity to model tier first** — Python for deterministic work, Haiku for exploration, Sonnet for standard output, Opus for high-stake reasoning. This single lever is ~70-80% of the savings. The five team-composition patterns (cache_control, role-tier mix, parallel/sequential intent, wall-clock cap, file-based handoff) add ~30% on top — but only on top of a correct tier match. **Get the tier right first; optimize the team second.** Optimizing the team while the base tier is wrong is fractions of nothing.
 
 ---
@@ -22,7 +22,7 @@
 
 Multi-agent Claude Code teams do cost 7×~15× per session — and they are often worth it. paper-maker's 16-agent hierarchical reviewer setup catches things a single session never would. ainews-daily's 7-stage pipeline buys real wall-clock collapse. policyblind's 8-agent cross-verify is exactly the kind of independent-reasoning isolation that justifies the multiplier.
 
-The trap is paying that multiplier **without the five cost-optimization patterns** that make it justifiable. `plz-save-token` catches the missing patterns, not the team itself. Each `SKILL.md` and each agent definition is usually fine internally. The failures live *between* files, in the team's composition:
+The trap is paying that multiplier **without the five cost-optimization patterns** that make it justifiable. `tokensave` catches the missing patterns, not the team itself. Each `SKILL.md` and each agent definition is usually fine internally. The failures live *between* files, in the team's composition:
 
 - **Model-tier misallocation across the team.** Every agent — orchestrator, worker, reviewer — defaults to Opus. Read-only scouts, regex classifiers, boilerplate writers all pay Opus prices to do work Sonnet or Haiku finishes at 40-80% less. The multi-agent multiplier compounds the wrong choice.
 - **Deterministic work routed through an LLM (the HD-003 trap).** Verbatim 1:1 mapping, BibTeX, CSV-to-JSON parsing, citation formatting — provably regex-plus-dictionary work — gets sent to an LLM that loops 91 minutes on tool calls. Same work in Python: 30 seconds.
@@ -46,7 +46,7 @@ Numbers from one operator's 27-harness Claude Code catalog, 2026-05-14 static au
 
 Footnote: numbers from one operator's `~/.claude` (27 harnesses, 104 agents, 32 skills). Full data in `examples/personal_baseline.md`. Broader inbound diagnostics welcome — see Contributing. H1 (99% Opus) is the kind of uniform-tier choice you would never make at the file level but is the default when no one is looking at the system.
 
-## What plz-save-token gives you
+## What tokensave gives you
 
 Four modes, three headline artifacts.
 
@@ -66,8 +66,8 @@ Three headline artifacts:
 ## Quick start (3 minutes)
 
 ```bash
-git clone https://github.com/epoko77-ai/plz-save-token
-cd plz-save-token
+git clone https://github.com/epoko77-ai/tokensave
+cd tokensave
 
 # Audit your entire ~/.claude catalog (9 rules, ~5 seconds)
 python3 scripts/audit.py
@@ -90,16 +90,16 @@ Standard library only. No `pip install`. Python 3.10+.
 For automatic activation across all Claude Code sessions — typing "내 하네스 감사해줘" or "what model fits this task?" auto-triggers the skill — install it as a self-contained skill:
 
 ```bash
-mkdir -p ~/.claude/skills/plz-save-token
-cp -r SKILL.md scripts references ~/.claude/skills/plz-save-token/
+mkdir -p ~/.claude/skills/tokensave
+cp -r SKILL.md scripts references ~/.claude/skills/tokensave/
 ```
 
-The skill is fully self-contained: SKILL.md + scripts/ + references/ all under `~/.claude/skills/plz-save-token/`. Subsequent `git pull` followed by the same `cp -r` keeps it in sync. The SKILL.md frontmatter declares 20+ trigger keywords (Korean + English).
+The skill is fully self-contained: SKILL.md + scripts/ + references/ all under `~/.claude/skills/tokensave/`. Subsequent `git pull` followed by the same `cp -r` keeps it in sync. The SKILL.md frontmatter declares 20+ trigger keywords (Korean + English).
 
 **Single-harness mode with custom prefix mapping** — `audit.py` discovers agents by matching harness name against a prefix map. The default map contains generic placeholders. Customize without touching code:
 
 ```bash
-export PLZ_SAVE_TOKEN_HARNESS_PREFIX_MAP='{"my-harness":["mh-"],"another":["an-"]}'
+export TOKENSAVE_HARNESS_PREFIX_MAP='{"my-harness":["mh-"],"another":["an-"]}'
 python3 scripts/audit.py /path/to/my-harness
 ```
 
@@ -160,7 +160,7 @@ Decision tree encoded directly in Python. Zero LLM calls per query.
 
 ## The catalog as standalone reference
 
-The audit script and the decision-tree CLI are deliberately thin shells over a more durable asset: **the pattern taxonomy itself**. You can use `plz-save-token` without running any code at all:
+The audit script and the decision-tree CLI are deliberately thin shells over a more durable asset: **the pattern taxonomy itself**. You can use `tokensave` without running any code at all:
 
 - **[`references/taxonomy.md`](references/taxonomy.md)** — 10 categories × 31 sub-patterns. Each card includes trigger keywords, detection method, mitigation, expected savings range, and **two or more independent external citations** (Anthropic official + community + academic). 19 KB, designed to be read end-to-end in 30 minutes.
 - **[`references/taxonomy.json`](references/taxonomy.json)** — same content as machine-parsable JSON. Drop into your own dashboards, tool definitions, or downstream lints.
@@ -172,22 +172,22 @@ The reference documents are explicitly designed to be useful **detached from the
 
 ## How to cite
 
-If `plz-save-token`'s taxonomy or matrices inform your design, RFC, blog post, or paper, the citation below works:
+If `tokensave`'s taxonomy or matrices inform your design, RFC, blog post, or paper, the citation below works:
 
 ```
-Lee, Seung-hyun. "plz-save-token: Cost-optimization lint for multi-agent
+Lee, Seung-hyun. "tokensave: Cost-optimization lint for multi-agent
 Claude Code harnesses." v1.0, 2026.
-https://github.com/epoko77-ai/plz-save-token
+https://github.com/epoko77-ai/tokensave
 ```
 
 For BibTeX:
 ```bibtex
 @misc{plzsavetoken2026,
   author = {Lee, Seung-hyun},
-  title  = {plz-save-token: Cost-optimization lint for multi-agent Claude Code harnesses},
+  title  = {tokensave: Cost-optimization lint for multi-agent Claude Code harnesses},
   year   = {2026},
   version = {1.0},
-  url    = {https://github.com/epoko77-ai/plz-save-token}
+  url    = {https://github.com/epoko77-ai/tokensave}
 }
 ```
 
@@ -212,7 +212,7 @@ R6 and R7 are partial under static detection — pair with the NL diagnostic pro
 ## File tree
 
 ```
-plz-save-token/
+tokensave/
 ├── README.md · LICENSE · SKILL.md        # SKILL.md = orchestrator skill, loaded by Claude Code
 ├── scripts/
 │   ├── audit.py                          # MODE 3 — 9 static rules, JSON supported
@@ -239,12 +239,12 @@ plz-save-token/
 
 ## Companion: harness-diagnostic
 
-`plz-save-token` and [`harness-diagnostic`](https://github.com/epoko77-ai/harness-diagnostic) are by the same operator and are designed to be used together:
+`tokensave` and [`harness-diagnostic`](https://github.com/epoko77-ai/harness-diagnostic) are by the same operator and are designed to be used together:
 
 - `harness-diagnostic` answers **"what is structurally missing in my harness?"** — 21 gaps across five architectural layers, Python prototype detects 8 via regex.
-- `plz-save-token` answers **"where is my harness burning money and what do I do about it?"** — 31 sub-patterns, static audit, model decision tree, cost estimator, optimal team composition matrix, runtime hook.
+- `tokensave` answers **"where is my harness burning money and what do I do about it?"** — 31 sub-patterns, static audit, model decision tree, cost estimator, optimal team composition matrix, runtime hook.
 
-Hybrid workflow: run `harness-diagnostic` first for structural gaps, then `plz-save-token audit.py` for cost gaps. 4 of harness-diagnostic's 21 gaps overlap (HD-003, HD-010, HD-011, HD-020) — those are both reliability bugs and cost bugs.
+Hybrid workflow: run `harness-diagnostic` first for structural gaps, then `tokensave audit.py` for cost gaps. 4 of harness-diagnostic's 21 gaps overlap (HD-003, HD-010, HD-011, HD-020) — those are both reliability bugs and cost bugs.
 
 ## Limitations and caveats
 
@@ -266,7 +266,7 @@ This boundary is currently underspecified in the catalog. Before any production 
 3. **Trust the matrix least at the boundaries.** Rows marked Sonnet that touch high-stakes reasoning, novel domains, or formal register (legal, academic, regulated) are the most likely to surprise. Treat the matrix as a prior, not a verdict.
 4. **Report what you measured.** Even N=1 case studies modify the matrix — see [`examples/case_studies/INDEX.md`](examples/case_studies/INDEX.md) and the [quality regression issue template](.github/ISSUE_TEMPLATE/quality_regression_report.md). Three converging reports on the same workload pattern → matrix row revised. One counter-example → asterisk + caveat added.
 
-A measurement framework (`quality_delta` scoring tool, golden task harness, retry-cost calculator) is on the v1.2 roadmap. Until then, the matrix is honest about its limits and the burden of evaluation sits with the operator. **This is the single biggest unresolved risk in adopting `plz-save-token` recommendations.**
+A measurement framework (`quality_delta` scoring tool, golden task harness, retry-cost calculator) is on the v1.2 roadmap. Until then, the matrix is honest about its limits and the burden of evaluation sits with the operator. **This is the single biggest unresolved risk in adopting `tokensave` recommendations.**
 
 ## Roadmap
 

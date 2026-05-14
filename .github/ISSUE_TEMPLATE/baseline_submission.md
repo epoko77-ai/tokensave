@@ -5,7 +5,7 @@ title: "baseline: <one-line summary, e.g., '40-harness setup, 60% Opus, 2 HD-003
 labels: ["baseline", "evidence"]
 ---
 
-> This is how `plz-save-token` grows from a one-operator catalog to a community catalog.
+> This is how `tokensave` grows from a one-operator catalog to a community catalog.
 > The numbers in your audit are the **evidence we lack most**.
 > All fields optional; submit what you can.
 

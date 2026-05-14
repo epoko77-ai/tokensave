@@ -1,5 +1,5 @@
 <!--
-Thanks for contributing to plz-save-token. A few quick checks before submission.
+Thanks for contributing to tokensave. A few quick checks before submission.
 -->
 
 ## What kind of PR is this?

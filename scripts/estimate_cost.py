@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-plz-save-token — estimate_cost.py
+tokensave — estimate_cost.py
 
 가격 데이터 SSOT 및 토큰/비용 추정 CLI.
-다른 plz-save-token 스크립트 (audit.py, model_selector.py, hook_check.py) 가
+다른 tokensave 스크립트 (audit.py, model_selector.py, hook_check.py) 가
 가격 상수를 이 모듈에서 import 한다.
 
 표준 라이브러리만 사용. 외부 의존 0.
@@ -254,7 +254,7 @@ def compare_all_models(
 def estimate_scenario(name: str, cache_hit_ratio: float = 0.0) -> dict:
     """사전 정의 하네스 시나리오 비용 추정.
 
-    mixed model 시나리오(plz-save-token-self 같은)는 sonnet_calls + opus_calls 분리 계산.
+    mixed model 시나리오(tokensave-self 같은)는 sonnet_calls + opus_calls 분리 계산.
     """
     if name not in SCENARIOS:
         raise ValueError(f"Unknown scenario: {name}. Choices: {list(SCENARIOS)}")
@@ -396,8 +396,8 @@ def render_scenario_md(d: dict) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="plz-save-token estimate_cost — 모델별·시나리오별 토큰 비용 추정. "
-                    "가격 SSOT (다른 plz-save-token 스크립트가 import 함)."
+        description="tokensave estimate_cost — 모델별·시나리오별 토큰 비용 추정. "
+                    "가격 SSOT (다른 tokensave 스크립트가 import 함)."
     )
     ap.add_argument("--model", choices=list(PRICING),
                     help="모델 선택 (opus/sonnet/haiku/python)")

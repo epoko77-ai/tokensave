@@ -2,7 +2,7 @@
 
 > One operator's Claude Code setup, audited with `python3 scripts/audit.py` on 2026-05-14.
 > Numbers, harness names, and hotspot agents are reported as-is from a real catalog.
-> This is a single data point — the operator who built plz-save-token ran it against their own
+> This is a single data point — the operator who built tokensave ran it against their own
 > `~/.claude/agents`, `~/.claude/skills`, and `~/CLAUDE.md`. Broader community baselines welcome
 > (see `examples/README.md` for contribution format).
 
@@ -19,7 +19,7 @@
 
 ---
 
-## Headline Numbers (the "shock facts" that motivated plz-save-token)
+## Headline Numbers (the "shock facts" that motivated tokensave)
 
 | # | Fact | Rule hit |
 |---|------|----------|
@@ -77,7 +77,7 @@ Agent name prefixes reflect the harness they belong to:
 
 The operator's `audit.py` used this prefix mapping in single-harness mode to locate agents in
 `~/.claude/agents/`. It is reproduced here as example data; the OSS version resolves this via
-the `PLZ_SAVE_TOKEN_HARNESS_PREFIX_MAP` environment variable.
+the `TOKENSAVE_HARNESS_PREFIX_MAP` environment variable.
 
 ```json
 {
@@ -109,14 +109,14 @@ the OSS `SCENARIOS` dict contains only two generic placeholders.
 | policyblind | 8 | opus | 30 | Fetch→Classify→Extract→Verify→Blind→Publish cycle |
 | uap-161-analysis | 8 | opus | 25 | 161 cases, skeptic gate loop |
 | busan-policy-pledges | 8 | opus | 22 | 6 domain experts + pledge strategist + pdf builder |
-| plz-save-token-self | 5 | mixed | 12 | sonnet 3 + opus 2, single build |
+| tokensave-self | 5 | mixed | 12 | sonnet 3 + opus 2, single build |
 
 ---
 
 ## How to Reproduce
 
 ```bash
-# Clone or download plz-save-token, then from its root:
+# Clone or download tokensave, then from its root:
 python3 scripts/audit.py                # full catalog scan (~/.claude + ~/CLAUDE.md)
 python3 scripts/audit.py --top 10       # hotspot top 10
 python3 scripts/audit.py --json         # machine-readable output

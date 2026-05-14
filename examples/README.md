@@ -1,6 +1,6 @@
 # examples/ — Baseline Contributions
 
-This directory holds real-world plz-save-token audit data contributed by operators.
+This directory holds real-world tokensave audit data contributed by operators.
 Each file represents one person's (or one team's) Claude Code catalog, audited
 with `python3 scripts/audit.py`.
 
@@ -10,7 +10,7 @@ with `python3 scripts/audit.py`.
 
 | File | Description |
 |------|-------------|
-| `personal_baseline.md` | One operator's 27-harness catalog (104 agents, 32 skills). The operator who built plz-save-token ran it against their own setup on 2026-05-14. Includes headline numbers, full 9-rule audit results, top-10 hotspot agents, and the HARNESS_PREFIX_MAP and cost scenario data that was factored out of the main codebase. |
+| `personal_baseline.md` | One operator's 27-harness catalog (104 agents, 32 skills). The operator who built tokensave ran it against their own setup on 2026-05-14. Includes headline numbers, full 9-rule audit results, top-10 hotspot agents, and the HARNESS_PREFIX_MAP and cost scenario data that was factored out of the main codebase. |
 
 ---
 

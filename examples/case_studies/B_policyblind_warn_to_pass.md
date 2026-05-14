@@ -3,14 +3,14 @@
 **Status:** Simulated comparison (smallest-fix-largest-effect demonstration)
 **Date:** 2026-05-14
 **Audit target:** PolicyBlind harness (entry in `~/CLAUDE.md`)
-**Tool version:** plz-save-token v1.0
+**Tool version:** tokensave v1.0
 **Operator:** one
 
 ---
 
 ## TL;DR
 
-| | Without plz-save-token | With plz-save-token |
+| | Without tokensave | With tokensave |
 |---|---|---|
 | audit.py R3 status | unknown / unguided | **WARN — 2/5 met, 3 missing (R3a, R3b, R3d)** |
 | Effort to reach well-formed | "wholesale redesign" intuition | **3 targeted fixes** to flip WARN → PASS |
@@ -41,7 +41,7 @@ The R3 decision **WARN** is the actionable middle tier. PASS would mean "you're 
 
 ---
 
-## Without plz-save-token (default workflow)
+## Without tokensave (default workflow)
 
 The operator knows PolicyBlind "works." 9-agent pipeline is mature. There's no obvious failure mode. The optimization question never gets asked because:
 
@@ -60,7 +60,7 @@ Operator runs this perhaps 50x/month → **$162/month, baseline**.
 
 ---
 
-## With plz-save-token (targeted WARN → PASS)
+## With tokensave (targeted WARN → PASS)
 
 ### Step 1 — Read the R3 sub-rule output
 
@@ -131,7 +131,7 @@ Cost: $1.4175 per run
 
 ## Quantified comparison
 
-| Metric | Without plz-save-token | With plz-save-token | Delta |
+| Metric | Without tokensave | With tokensave | Delta |
 |---|---|---|---|
 | Cost per run (250K in / 80K out) | $3.25 (Opus, no cache) | $1.42 (Sonnet + cache 90%) | **-56%** |
 | Monthly run cost (50x/month) | $162.50 | $70.88 | **-$91.62 / month** |
