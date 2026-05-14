@@ -185,7 +185,7 @@ https://github.com/epoko77-ai/tokensave
 
 For BibTeX:
 ```bibtex
-@misc{plzsavetoken2026,
+@misc{tokensave2026,
   author = {Lee, Seung-hyun},
   title  = {tokensave: Cost-optimization lint for multi-agent Claude Code harnesses},
   year   = {2026},
