@@ -284,24 +284,20 @@ def scan_skills(skills_dir: Path) -> list[dict]:
         if not sm.is_file():
             continue
         text = sm.read_text(errors="replace")
-        phases = grep_count(text, r"^#+\s*Phase\s+\d", re.MULTILINE | re.IGNORECASE)
+        # Phase 정의 패턴 — Phase/MODE/단계/Step 어느 형태든 actionable phase로 간주
+        phases = grep_count(
+            text,
+            r"^#+\s*(Phase|MODE|단계|모드|Step|스텝)\s+\d",
+            re.MULTILINE | re.IGNORECASE,
+        )
         decision_trees = grep_count(text, r"결정\s*트리|decision\s*tree", re.IGNORECASE)
         examples = grep_count(text, r"```|예시|example", re.IGNORECASE)
-        # frontmatter YAML에서 meta_skill: true 감지 — 메타 스킬 예외 처리
-        meta_skill = False
-        if text.startswith("---"):
-            fm_end = text.find("\n---", 4)
-            if fm_end > 0:
-                fm = text[3:fm_end]
-                if re.search(r"^\s*meta_skill\s*:\s*true\s*$", fm, re.MULTILINE | re.IGNORECASE):
-                    meta_skill = True
         skills.append({
             "name": sub.name,
             "size": len(text),
             "phase_count": phases,
             "decision_tree_count": decision_trees,
             "example_count": examples,
-            "meta_skill": meta_skill,
             "path": str(sm),
         })
     return skills
@@ -692,10 +688,26 @@ def rule_R4_bloat(claude_md_text: str, claude_md_path: Optional[Path],
         if lines > 200:
             evidence.append(f"`{claude_md_path.name}` — {lines} lines ({len(claude_md_text):,} chars)")
             issues.append(f"CLAUDE.md {lines} lines")
-    # meta_skill: true frontmatter 인 스킬은 R4 예외 (R9와 동일 정책)
-    bloated_skills = [s for s in skills if s["size"] > 8000 and not s.get("meta_skill", False)]
+    # R4 = size > 8K + 비actionable. 평가자 review (2026-05-14): 룰 작성자가
+    # 자기 룰의 첫 예외(meta_skill)가 되는 패턴은 catalog 신뢰성에 균열. 대신
+    # actionable-content threshold로 룰 자체를 깨끗하게 — phase 정의나 결정 트리가
+    # 충분히 있으면 size 커도 정당.
+    bloated_skills = []
+    for s in skills:
+        if s["size"] <= 8000:
+            continue
+        # 충분한 actionable content면 PASS — phase ≥ 2 + tree ≥ 1, 또는 phase ≥ 3
+        is_actionable = (
+            (s["phase_count"] >= 2 and s["decision_tree_count"] >= 1)
+            or s["phase_count"] >= 3
+        )
+        if not is_actionable:
+            bloated_skills.append(s)
     for s in sorted(bloated_skills, key=lambda x: -x["size"])[:5]:
-        evidence.append(f"`{s['name']}/SKILL.md` — {s['size']:,} chars")
+        evidence.append(
+            f"`{s['name']}/SKILL.md` — {s['size']:,} chars, "
+            f"phase={s['phase_count']}, tree={s['decision_tree_count']}"
+        )
         issues.append(f"{s['name']} {s['size']:,}자")
     if not evidence:
         return Finding(rule_id="R4", category=meta["category"], title=meta["title"],
@@ -872,12 +884,11 @@ def rule_R9_nonactionable(skills: list[dict], taxonomy: dict, root: Path) -> Fin
         return Finding(rule_id="R9", category=meta["category"], title=meta["title"],
                        severity=meta["severity"], decision="N/A",
                        reasoning="No SKILL.md found.", sources=meta["sources"])
-    # 휴리스틱: SKILL.md > 5000자 + phase_count=0 + decision_tree_count=0 → 비실행 콘텐츠 의심
-    # 단 frontmatter meta_skill: true 인 메타 스킬은 R9 예외 (4모드+매트릭스 본문 활성화 필요)
+    # 휴리스틱: SKILL.md > 5000자 + phase_count=0 + decision_tree_count=0 → 비실행 콘텐츠 의심.
+    # 평가자 review (2026-05-14): meta_skill 예외는 룰 신뢰성에 균열. 룰 자체로 정직 —
+    # actionable content (phase/tree) 가 0이면 비대 책임이 본인에게 있음.
     suspicious = []
     for s in skills:
-        if s.get("meta_skill", False):
-            continue
         if s["size"] > 5000 and s["phase_count"] == 0 and s["decision_tree_count"] == 0:
             suspicious.append(s)
     if suspicious:

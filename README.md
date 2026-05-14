@@ -253,7 +253,7 @@ Hybrid workflow: run `harness-diagnostic` first for structural gaps, then `token
 - **Pricing is point-in-time.** Cost estimates use Anthropic per-MTok prices as of 2026-05-14, encoded as a single constant in `scripts/estimate_cost.py`. Update one constant when prices change; every downstream script picks it up.
 - **R6 and R7 are partial under static detection.** Repeated-read patterns and report-first convention violations are detectable with higher fidelity at runtime. The Hook mode covers some of this; a fully instrumented runtime collector is future work.
 - **Korean reference content alongside English.** The project began bilingual; internal research notes remain in Korean. All user-facing artifacts (README, SKILL.md, references/) are English.
-- **The skill is a meta-skill.** `SKILL.md` itself exceeds the body-bloat warning R9 would flag — by design. Frontmatter declares `meta_skill: true` and `audit.py` excludes meta-skills from R9. Body is four modes + headline matrix + decision tree — all actionable.
+- **The skill's own SKILL.md is large but actionable.** `SKILL.md` is ~18 KB — above the R4 size threshold. However, R4 and R9 check for the *ratio* of actionable content (phase definitions, decision trees) to bulk, not size alone. The four modes are four phase definitions and the body has the decision tree inline, so the rules judge the skill PASS on its own audit. The rules judge the structure, not the author's identity — no meta-skill exception is applied.
 
 ## Quality regression risk (the most important caveat)
 

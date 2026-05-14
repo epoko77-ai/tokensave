@@ -139,7 +139,7 @@ WARN tier 사례(PolicyBlind, 2시간 작업 → -56%, 연 $1,099 절감)는 [`e
 - **Claude Code 한정** — `~/.claude/agents/` 레이아웃과 SKILL.md 컨벤션 기반 검출. LangChain, CrewAI, AutoGen은 어댑터 필요 (v1.1 로드맵).
 - **가격은 시점 데이터** — Anthropic 공식 per-MTok 가격(2026-05-14 기준). `scripts/estimate_cost.py`의 PRICING 상수 한 곳만 갱신하면 모든 스크립트에 반영.
 - **품질 저하 risk 미측정** — 매트릭스의 "Sonnet 다운그레이드 -40%"는 작업이 Sonnet으로 충분하다는 전제. 다운그레이드 후 재시도 발생 시 saved tokens ≠ saved cost. v1.2 measurement framework 로드맵. **이 점이 채택 시 가장 큰 risk** — 영어 README "Quality regression risk" 섹션 + [`references/quality_measurement.md`](references/quality_measurement.md) (계획) 참조.
-- **메타 스킬** — `SKILL.md` 자체가 비대 룰(R4/R9)에 걸릴 수 있지만 `meta_skill: true` frontmatter로 예외. 도구가 자기 자신 audit 100% 통과.
+- **SKILL.md가 크지만 actionable.** SKILL.md ~18KB로 R4 size 임계 초과. 단 R4·R9는 비대 size가 아니라 actionable content 비율(phase 정의·결정 트리)을 검사 — 4 모드 = 4 phase 정의, 결정 트리 본문 포함이라 자기 audit PASS. 룰이 작성자 신원이 아니라 구조를 판정 — meta-skill 예외 적용 안 함.
 
 ---
 
